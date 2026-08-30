@@ -2187,7 +2187,7 @@ if failed_payment:
     )
 
 
-   # ========================================================
+ # ========================================================
 # RECOVERY ACTIONS
 # ========================================================
 
@@ -2235,6 +2235,28 @@ with x3:
         use_container_width=True
     ):
         st.session_state.pay_later_selected = True
+
+
+# ========================================================
+# DISPLAY SELECTED ACTIONS
+# ========================================================
+
+if st.session_state.scheduled_retry:
+    st.info(
+        "⏰ Scheduled retry: " +
+        st.session_state.scheduled_retry
+    )
+
+if st.session_state.method_changed:
+    st.success(
+        "💳 Alternative payment method selected."
+    )
+
+if st.session_state.pay_later_selected:
+    st.success(
+        "🕐 Pay Later option selected."
+    )
+    
 
 
 # ========================================================
