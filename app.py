@@ -2187,88 +2187,75 @@ if failed_payment:
     )
 
 
-    # ========================================================
-    # RECOVERY ACTIONS
-    # ========================================================
+   # ========================================================
+# RECOVERY ACTIONS
+# ========================================================
 
-    x1, x2, x3 = st.columns(3)
+st.subheader("⚡ Recovery Actions")
 
+x1, x2, x3 = st.columns(3)
 
-    if x1.button(
+# ---------------- SCHEDULE RETRY ----------------
+
+with x1:
+    if st.button(
         "🔄 SCHEDULE RETRY",
-        key="schedule_retry",
+        key="schedule_retry_btn",
         use_container_width=True
     ):
-
         scheduled_time = (
-            datetime.now()
-            +
+            datetime.now() +
             timedelta(minutes=best_time)
         )
 
-
         st.session_state.scheduled_retry = (
-            scheduled_time.strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
+            scheduled_time.strftime("%Y-%m-%d %H:%M:%S")
         )
-
 
         st.success(
-            f"Retry scheduled after "
-            f"{best_time} minutes."
+            f"✅ Retry scheduled after {best_time} minutes."
         )
 
+# ---------------- CHANGE METHOD ----------------
 
-    if x2.button(
+with x2:
+    if st.button(
         "💳 CHANGE METHOD",
-        key="change_method",
+        key="change_method_btn",
         use_container_width=True
     ):
+        st.session_state.method_changed = True
 
-        st.session_state.change_method = True
+# ---------------- PAY LATER ----------------
 
-
-        st.info(
-            "Payment method change selected."
-        )
-
-
-    if x3.button(
+with x3:
+    if st.button(
         "🕐 PAY LATER",
-        key="pay_later",
+        key="pay_later_btn",
         use_container_width=True
     ):
-
-        st.session_state.pay_later = True
-
-
-        st.info(
-            "Pay Later option selected."
-        )
+        st.session_state.pay_later_selected = True
 
 
-    if st.session_state.scheduled_retry:
+# ========================================================
+# DISPLAY SELECTED ACTIONS
+# ========================================================
 
-        st.info(
-            "⏰ Scheduled retry: "
-            +
-            st.session_state.scheduled_retry
-        )
+if st.session_state.scheduled_retry:
+    st.info(
+        "⏰ Scheduled retry: " +
+        st.session_state.scheduled_retry
+    )
 
+if st.session_state.method_changed:
+    st.success(
+        "💳 Alternative payment method selected."
+    )
 
-    if st.session_state.change_method:
-
-        st.success(
-            "💳 Alternative payment method selected."
-        )
-
-
-    if st.session_state.pay_later:
-
-        st.success(
-            "🕐 Pay Later option selected."
-        )
+if st.session_state.pay_later_selected:
+    st.success(
+        "🕐 Pay Later option selected."
+    )
 
 
 # ============================================================
