@@ -886,61 +886,43 @@ if st.session_state.last_result:
     # EXPLAINABLE AI
     # ============================================================
 
-    st.header("🧠 Explainable AI")
+   # ============================================================
+# EXPLAINABLE AI
+# ============================================================
 
-    reasons = []
+st.header("🧠 Explainable AI")
 
-    if merchant_risk >= 0.6:
+# Calculate safely
+amount_to_monthly_spend = amount / max(monthly_spend, 1)
 
-        reasons.append(
-            "⚠️ Merchant risk score is elevated."
-        )
+reasons = []
 
-    else:
+if merchant_risk >= 0.6:
+    reasons.append("⚠️ Merchant risk score is elevated.")
+else:
+    reasons.append("✅ Merchant risk is within normal range.")
 
-        reasons.append(
-            "✅ Merchant risk is within normal range."
-        )
+if amount_to_monthly_spend > 0.5:
+    reasons.append(
+        "⚠️ Transaction amount is high relative to monthly spending."
+    )
+else:
+    reasons.append(
+        "✅ Transaction amount is consistent with customer spending."
+    )
 
-    if amount_to_monthly_spend > 0.5:
+if failed_24h > 3:
+    reasons.append("⚠️ Multiple failed transactions detected.")
+else:
+    reasons.append("✅ Recent transaction failure activity is low.")
 
-        reasons.append(
-            "⚠️ Transaction amount is high relative to monthly spending."
-        )
+if ip_risk >= 0.6:
+    reasons.append("⚠️ IP risk score is elevated.")
+else:
+    reasons.append("✅ IP risk is within normal range.")
 
-    else:
-
-        reasons.append(
-            "✅ Transaction amount is consistent with customer spending."
-        )
-
-    if failed_24h > 3:
-
-        reasons.append(
-            "⚠️ Multiple failed transactions detected."
-        )
-
-    else:
-
-        reasons.append(
-            "✅ Recent transaction failure activity is low."
-        )
-
-    if ip_risk >= 0.6:
-
-        reasons.append(
-            "⚠️ IP risk score is elevated."
-        )
-
-    else:
-
-        reasons.append(
-            "✅ IP risk is within normal range."
-        )
-
-    for reason in reasons:
-
-        st.write(reason)
+for reason in reasons:
+    st.write(reason)
 
 
     # ============================================================
