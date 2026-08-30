@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ================================================================
-# PATHS — GITHUB / STREAMLIT CLOUD READY
+# PATHS
 # ================================================================
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -47,10 +47,6 @@ def load_models():
     return fraud, recovery, retry
 
 
-# ================================================================
-# LOAD FEATURES
-# ================================================================
-
 @st.cache_data
 def load_features():
 
@@ -66,10 +62,6 @@ def load_features():
     return fraud, recovery, retry
 
 
-# ================================================================
-# LOAD DATA
-# ================================================================
-
 @st.cache_data
 def load_data():
 
@@ -80,7 +72,7 @@ def load_data():
 
 
 # ================================================================
-# INITIALIZE
+# INITIALIZE MODELS
 # ================================================================
 
 try:
@@ -98,8 +90,7 @@ except Exception as e:
     st.code(str(e))
 
     st.info(
-        "Make sure models/, config/, and data/ are uploaded "
-        "to the GitHub repository."
+        "Check models/, config/, and data/ in your GitHub repository."
     )
 
     st.stop()
@@ -117,26 +108,106 @@ defaults = {
 
     "last_result": None,
 
-    "otp_verified": False,
+    "current_transaction": None,
 
     "generated_otp": None,
 
-    "otp_expiry": None,
+    "otp_verified": False,
 
-    "ticket_message": "",
+    "otp_input": "",
 
     "ticket_details": None,
+
+    "ticket_raised": False,
 
     "failed_payment": False
 
 }
-
 
 for key, value in defaults.items():
 
     if key not in st.session_state:
 
         st.session_state[key] = value
+
+
+# ================================================================
+# CALLBACKS
+# ================================================================
+
+def send_otp():
+
+    st.session_state.generated_otp = str(
+        random.randint(100000, 999999)
+    )
+
+    st.session_state.otp_verified = False
+    st.session_state.otp_input = ""
+
+
+def verify_otp():
+
+    entered = str(
+        st.session_state.get("otp_input", "")
+    ).strip()
+
+    generated = st.session_state.get(
+        "generated_otp"
+    )
+
+    if generated and entered == generated:
+
+        st.session_state.otp_verified = True
+
+    else:
+
+        st.session_state.otp_verified = False
+
+
+def raise_ticket():
+
+    transaction = st.session_state.current_transaction
+
+    if transaction is None:
+        return
+
+    ticket_id = (
+        "PS-"
+        + datetime.now().strftime("%Y%m%d%H%M%S")
+        + "-"
+        + str(np.random.randint(100, 999))
+    )
+
+    ticket = {
+
+        "Ticket ID": ticket_id,
+
+        "Created": datetime.now().strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+
+        "Amount": f"₹{transaction['amount']:,.2f}",
+
+        "Risk Score": f"{transaction['risk_score']:.2f}%",
+
+        "Risk Level": "🔴 HIGH",
+
+        "Action": "HOLD",
+
+        "Status": "🔴 UNDER REVIEW"
+
+    }
+
+    st.session_state.tickets.append(ticket)
+
+    st.session_state.ticket_details = ticket
+
+    st.session_state.ticket_raised = True
+
+
+def resolve_ticket(index):
+
+    st.session_state.tickets[index]["Status"] = "🟢 RESOLVED"
 
 
 # ================================================================
@@ -190,18 +261,34 @@ st.markdown(
 }
 
 .ticket-card {
-    padding: 20px;
+    padding: 22px;
     border-radius: 15px;
     border: 1px solid #ff4b4b;
     background: rgba(190,20,20,.12);
     margin-top: 15px;
 }
 
-.otp-card {
-    padding: 20px;
+.success-ticket {
+    padding: 22px;
     border-radius: 15px;
-    border: 1px solid #ffa500;
+    border: 2px solid #21c354;
+    background: rgba(20,130,65,.15);
+    margin-top: 15px;
+}
+
+.otp-card {
+    padding: 22px;
+    border-radius: 15px;
+    border: 2px solid #ffa500;
     background: rgba(190,120,0,.12);
+    margin-top: 15px;
+}
+
+.verified-card {
+    padding: 22px;
+    border-radius: 15px;
+    border: 2px solid #21c354;
+    background: rgba(20,130,65,.15);
     margin-top: 15px;
 }
 
@@ -249,7 +336,6 @@ st.sidebar.caption(
     "Configure a transaction and run the AI decision engine."
 )
 
-
 amount = st.sidebar.number_input(
     "Transaction Amount (₹)",
     min_value=100.0,
@@ -258,13 +344,11 @@ amount = st.sidebar.number_input(
     step=500.0
 )
 
-
 monthly_spend = st.sidebar.number_input(
     "Customer Monthly Spend (₹)",
     min_value=500.0,
     value=10000.0
 )
-
 
 merchant_risk = st.sidebar.slider(
     "Merchant Risk Score",
@@ -273,14 +357,12 @@ merchant_risk = st.sidebar.slider(
     0.25
 )
 
-
 ip_risk = st.sidebar.slider(
     "IP Risk Score",
     0.0,
     1.0,
     0.30
 )
-
 
 txn_1h = st.sidebar.number_input(
     "Transactions in 1 Hour",
@@ -289,14 +371,12 @@ txn_1h = st.sidebar.number_input(
     value=2
 )
 
-
 txn_24h = st.sidebar.number_input(
     "Transactions in 24 Hours",
     min_value=0,
     max_value=5000,
     value=5
 )
-
 
 failed_24h = st.sidebar.number_input(
     "Failed Transactions (24h)",
@@ -305,24 +385,20 @@ failed_24h = st.sidebar.number_input(
     value=1
 )
 
-
 international = st.sidebar.selectbox(
     "International Transaction",
     ["No", "Yes"]
 )
-
 
 payment_channel = st.sidebar.selectbox(
     "Payment Channel",
     ["UPI", "CARD", "WALLET", "NETBANKING"]
 )
 
-
 device_type = st.sidebar.selectbox(
     "Device Type",
     ["Mobile", "Desktop", "Tablet"]
 )
-
 
 geo_distance = st.sidebar.number_input(
     "Geo Distance From Last Txn",
@@ -330,13 +406,11 @@ geo_distance = st.sidebar.number_input(
     value=10.0
 )
 
-
 amount_deviation = st.sidebar.number_input(
     "Amount Deviation From User Mean",
     min_value=0.0,
     value=500.0
 )
-
 
 customer_avg_amount = st.sidebar.number_input(
     "Customer Average Amount",
@@ -344,13 +418,11 @@ customer_avg_amount = st.sidebar.number_input(
     value=1200.0
 )
 
-
 customer_txn_before = st.sidebar.number_input(
     "Customer Transactions Before",
     min_value=0.0,
     value=10.0
 )
-
 
 customer_failed_rate = st.sidebar.slider(
     "Customer Failed Rate",
@@ -359,20 +431,17 @@ customer_failed_rate = st.sidebar.slider(
     0.10
 )
 
-
 merchant_txn_before = st.sidebar.number_input(
     "Merchant Transactions Before",
     min_value=0.0,
     value=100.0
 )
 
-
 merchant_avg_amount = st.sidebar.number_input(
     "Merchant Average Amount",
     min_value=0.0,
     value=2000.0
 )
-
 
 merchant_fraud_rate = st.sidebar.slider(
     "Merchant Fraud Rate",
@@ -381,14 +450,12 @@ merchant_fraud_rate = st.sidebar.slider(
     0.02
 )
 
-
 post_auth_risk = st.sidebar.slider(
     "Post-Auth Risk Score",
     0.0,
     1.0,
     0.20
 )
-
 
 analyze = st.sidebar.button(
     "🔍 ANALYZE PAYMENT",
@@ -405,18 +472,17 @@ st.header("📊 Risk Statistics")
 
 total_transactions = len(fraud_data)
 
-
 if "is_fraud" in fraud_data.columns:
 
-    fraud_count = int(fraud_data["is_fraud"].sum())
+    fraud_count = int(
+        fraud_data["is_fraud"].sum()
+    )
 
 else:
 
     fraud_count = 0
 
-
 safe_count = total_transactions - fraud_count
-
 
 if "recovery_success" in recovery_data.columns:
 
@@ -428,33 +494,27 @@ else:
 
     recovered_count = 0
 
-
 a, b, c, d = st.columns(4)
-
 
 a.metric(
     "📊 Transactions",
     f"{total_transactions:,}"
 )
 
-
 b.metric(
     "🟢 Low Risk",
     f"{safe_count:,}"
 )
-
 
 c.metric(
     "🔴 Fraud / High Risk",
     f"{fraud_count:,}"
 )
 
-
 d.metric(
     "💰 Recovered",
     f"{recovered_count:,}"
 )
-
 
 st.divider()
 
@@ -465,7 +525,6 @@ st.divider()
 
 st.header("🛡️ Security Operations Center")
 
-
 active_tickets = len(
     [
         x for x in st.session_state.tickets
@@ -473,33 +532,27 @@ active_tickets = len(
     ]
 )
 
-
 soc1, soc2, soc3, soc4 = st.columns(4)
-
 
 soc1.metric(
     "🟢 LOW",
     "ALLOW"
 )
 
-
 soc2.metric(
     "🟠 MEDIUM",
     "2FA"
 )
-
 
 soc3.metric(
     "🔴 HIGH",
     "HOLD"
 )
 
-
 soc4.metric(
     "🎫 ACTIVE TICKETS",
     active_tickets
 )
-
 
 st.info(
     """
@@ -520,7 +573,6 @@ st.info(
 
 st.header("📜 Transaction History")
 
-
 history_columns = [
     "transaction_id",
     "transaction_time",
@@ -532,28 +584,23 @@ history_columns = [
     "is_fraud"
 ]
 
-
 history_columns = [
     x for x in history_columns
     if x in fraud_data.columns
 ]
 
-
 history_table = fraud_data[
     history_columns
 ].head(15).copy()
 
-
 if "is_fraud" in history_table.columns:
 
     history_table["Risk"] = (
-        history_table["is_fraud"]
-        .map({
+        history_table["is_fraud"].map({
             0: "🟢 LOW",
             1: "🔴 HIGH"
         })
     )
-
 
 st.dataframe(
     history_table,
@@ -563,11 +610,8 @@ st.dataframe(
 
 
 # ================================================================
-# LIVE FRAUD DETECTION
+# ANALYZE PAYMENT
 # ================================================================
-
-st.header("🔍 AI Fraud Detection")
-
 
 if analyze:
 
@@ -581,38 +625,23 @@ if analyze:
         international == "Yes"
     )
 
-
     amount_to_monthly_spend = (
-        amount /
-        max(monthly_spend, 1)
+        amount / max(monthly_spend, 1)
     )
-
 
     failure_rate_24h = (
-        failed_24h /
-        max(txn_24h, 1)
+        failed_24h / max(txn_24h, 1)
     )
-
 
     velocity_ratio = (
-        txn_1h /
-        max(txn_24h, 1)
+        txn_1h / max(txn_24h, 1)
     )
 
-
-    is_weekend = int(
-        day >= 5
-    )
-
+    is_weekend = int(day >= 5)
 
     is_night = int(
         hour < 6 or hour >= 22
     )
-
-
-    # ============================================================
-    # MODEL INPUT
-    # ============================================================
 
     fraud_input = pd.DataFrame([{
 
@@ -676,80 +705,49 @@ if analyze:
 
     }])
 
-
     fraud_input = fraud_input[
         fraud_features
     ]
 
-
-    # ============================================================
-    # FRAUD MODEL
-    # ============================================================
-
     fraud_probability = (
-        fraud_model
-        .predict_proba(
+        fraud_model.predict_proba(
             fraud_input
         )[0, 1]
     )
 
-
     risk_score = fraud_probability * 100
-
-
-    # ============================================================
-    # DECISION
-    # ============================================================
 
     if risk_score >= 70:
 
         risk_level = "HIGH"
-
         action = "HOLD"
-
         icon = "🔴"
 
     elif risk_score >= 40:
 
         risk_level = "MEDIUM"
-
         action = "2FA"
-
         icon = "🟠"
 
     else:
 
         risk_level = "LOW"
-
         action = "ALLOW"
-
         icon = "🟢"
 
-
-    # ============================================================
-    # RESET SECURITY STATE FOR NEW PAYMENT
-    # ============================================================
-
-    st.session_state.otp_verified = False
-
+    # New transaction = reset security controls
     st.session_state.generated_otp = None
-
-    st.session_state.otp_expiry = None
-
-    st.session_state.ticket_message = ""
+    st.session_state.otp_verified = False
+    st.session_state.otp_input = ""
 
     st.session_state.ticket_details = None
-
-
-    # ============================================================
-    # SAVE RESULT
-    # ============================================================
+    st.session_state.ticket_raised = False
 
     result = {
 
-        "risk": risk_score,
+        "risk_score": risk_score,
 
-        "level": risk_level,
+        "risk_level": risk_level,
 
         "action": action,
 
@@ -761,11 +759,34 @@ if analyze:
 
     }
 
-
     st.session_state.last_result = result
+
+    st.session_state.current_transaction = result
 
     st.session_state.history.append(result)
 
+
+# ================================================================
+# SHOW LIVE RESULT
+# ================================================================
+
+if st.session_state.last_result:
+
+    result = st.session_state.last_result
+
+    risk_score = result["risk_score"]
+
+    risk_level = result["risk_level"]
+
+    action = result["action"]
+
+    amount = result["amount"]
+
+    icon = {
+        "LOW": "🟢",
+        "MEDIUM": "🟠",
+        "HIGH": "🔴"
+    }[risk_level]
 
     # ============================================================
     # RISK METER
@@ -773,40 +794,31 @@ if analyze:
 
     st.header("🚦 Live Risk Meter")
 
-
     m1, m2, m3 = st.columns(3)
-
 
     m1.metric(
         "Risk Score",
         f"{risk_score:.2f}%"
     )
 
-
     m2.metric(
         "Risk Level",
         f"{icon} {risk_level}"
     )
-
 
     m3.metric(
         "Payment Action",
         action
     )
 
-
     st.progress(
         int(
             min(
-                max(
-                    risk_score,
-                    0
-                ),
+                max(risk_score, 0),
                 100
             )
         )
     )
-
 
     # ============================================================
     # RESULT CARD
@@ -831,7 +843,6 @@ if analyze:
             unsafe_allow_html=True
         )
 
-
     elif risk_level == "MEDIUM":
 
         st.markdown(
@@ -850,7 +861,6 @@ if analyze:
 """,
             unsafe_allow_html=True
         )
-
 
     else:
 
@@ -878,9 +888,7 @@ if analyze:
 
     st.header("🧠 Explainable AI")
 
-
     reasons = []
-
 
     if merchant_risk >= 0.6:
 
@@ -894,7 +902,6 @@ if analyze:
             "✅ Merchant risk is within normal range."
         )
 
-
     if amount_to_monthly_spend > 0.5:
 
         reasons.append(
@@ -906,7 +913,6 @@ if analyze:
         reasons.append(
             "✅ Transaction amount is consistent with customer spending."
         )
-
 
     if failed_24h > 3:
 
@@ -920,7 +926,6 @@ if analyze:
             "✅ Recent transaction failure activity is low."
         )
 
-
     if ip_risk >= 0.6:
 
         reasons.append(
@@ -933,7 +938,6 @@ if analyze:
             "✅ IP risk is within normal range."
         )
 
-
     for reason in reasons:
 
         st.write(reason)
@@ -945,12 +949,11 @@ if analyze:
 
     st.header("🤖 AI Recommendation")
 
-
     if risk_level == "HIGH":
 
         recommendation = (
-            "Hold this payment and create a "
-            "security ticket because the fraud risk is high."
+            "Hold this payment and create a security ticket "
+            "because the fraud risk is high."
         )
 
     elif risk_level == "MEDIUM":
@@ -967,10 +970,9 @@ if analyze:
             "fraud risk is low."
         )
 
-
     st.info(
-        "🤖 PayShield recommends: " +
-        recommendation
+        "🤖 PayShield recommends: "
+        + recommendation
     )
 
 
@@ -982,7 +984,7 @@ if analyze:
 
 
     # ============================================================
-    # MEDIUM — 2FA
+    # MEDIUM RISK — 2FA
     # ============================================================
 
     if risk_level == "MEDIUM":
@@ -1000,38 +1002,22 @@ if analyze:
             "before payment approval."
         )
 
-
         # --------------------------------------------------------
-        # GENERATE OTP
+        # SEND OTP
         # --------------------------------------------------------
 
         if st.session_state.generated_otp is None:
 
-            if st.button(
+            st.button(
                 "📲 SEND OTP",
                 key="send_otp",
                 type="primary",
-                use_container_width=True
-            ):
-
-                otp = str(
-                    random.randint(
-                        100000,
-                        999999
-                    )
-                )
-
-                st.session_state.generated_otp = otp
-
-                st.session_state.otp_expiry = (
-                    datetime.now()
-                )
-
-                st.rerun()
-
+                use_container_width=True,
+                on_click=send_otp
+            )
 
         # --------------------------------------------------------
-        # SHOW DEMO OTP
+        # OTP DISPLAY
         # --------------------------------------------------------
 
         if st.session_state.generated_otp:
@@ -1040,68 +1026,82 @@ if analyze:
                 f"""
 <div class="otp-card">
 
-<h3>📲 OTP SENT</h3>
+<h2>📲 OTP SENT SUCCESSFULLY</h2>
 
 <p>
-For this Buildathon demo, the generated OTP is displayed below.
+For this Razorpay Buildathon demonstration,
+the generated OTP is displayed below.
 </p>
 
 <h1>🔐 {st.session_state.generated_otp}</h1>
 
-<p>Enter this OTP to verify the transaction.</p>
+<p>Enter this OTP below to verify the payment.</p>
 
 </div>
 """,
                 unsafe_allow_html=True
             )
 
-
-            otp = st.text_input(
-                "Enter OTP",
-                type="password",
+            st.text_input(
+                "Enter 6-Digit OTP",
                 max_chars=6,
-                key="live_otp"
+                key="otp_input",
+                placeholder="Enter OTP"
+            )
+
+            st.button(
+                "🔐 VERIFY 2FA",
+                key="verify_2fa",
+                type="primary",
+                use_container_width=True,
+                on_click=verify_otp
+            )
+
+        # --------------------------------------------------------
+        # VERIFIED
+        # --------------------------------------------------------
+
+        if st.session_state.otp_verified:
+
+            st.markdown(
+                """
+<div class="verified-card">
+
+<h2>✅ 2FA VERIFIED SUCCESSFULLY</h2>
+
+<p>
+Customer identity has been verified.
+</p>
+
+<p>
+🟢 Payment is APPROVED after successful
+two-factor authentication.
+</p>
+
+</div>
+""",
+                unsafe_allow_html=True
+            )
+
+            st.success(
+                "🟢 SECURITY CHECK PASSED — PAYMENT APPROVED"
+            )
+
+            st.balloons()
+
+        elif (
+            st.session_state.generated_otp
+            and st.session_state.otp_input
+            and not st.session_state.otp_verified
+        ):
+
+            st.error(
+                "❌ OTP not verified. Enter the correct OTP and click VERIFY 2FA."
             )
 
 
-            if st.button(
-                "🔐 VERIFY 2FA",
-                key="verify_2fa",
-                use_container_width=True
-            ):
-
-                if otp == st.session_state.generated_otp:
-
-                    st.session_state.otp_verified = True
-
-                    st.success(
-                        "✅ 2FA VERIFIED — PAYMENT APPROVED"
-                    )
-
-                    st.balloons()
-
-                else:
-
-                    st.session_state.otp_verified = False
-
-                    st.error(
-                        "❌ INVALID OTP — PAYMENT BLOCKED"
-                    )
-
-
-            if st.session_state.otp_verified:
-
-                st.success(
-                    "🟢 Customer identity verified."
-                )
-
-                st.info(
-                    "Payment has been approved after successful 2FA."
-                )
-
-
     # ============================================================
-    # HIGH — SECURITY TICKET
+    # HIGH RISK — SECURITY TICKET
     # ============================================================
 
     elif risk_level == "HIGH":
@@ -1116,93 +1116,34 @@ For this Buildathon demo, the generated OTP is displayed below.
 
         st.write(
             "This payment is on HOLD. "
-            "Create a security ticket for review."
+            "Create a security ticket for the security team."
         )
-
 
         # --------------------------------------------------------
         # RAISE TICKET
         # --------------------------------------------------------
 
-        if st.button(
-            "🎫 RAISE SECURITY TICKET",
-            key="raise_live_ticket",
-            type="primary",
-            use_container_width=True
-        ):
+        if not st.session_state.ticket_raised:
 
-            ticket_id = (
-                "PS-" +
-                datetime.now().strftime(
-                    "%Y%m%d%H%M%S"
-                ) +
-                "-" +
-                str(
-                    np.random.randint(
-                        100,
-                        999
-                    )
-                )
+            st.button(
+                "🎫 RAISE SECURITY TICKET",
+                key="raise_security_ticket",
+                type="primary",
+                use_container_width=True,
+                on_click=raise_ticket
             )
-
-
-            created_time = datetime.now().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-
-
-            new_ticket = {
-
-                "Ticket ID":
-                    ticket_id,
-
-                "Created":
-                    created_time,
-
-                "Amount":
-                    f"₹{amount:,.2f}",
-
-                "Risk Score":
-                    f"{risk_score:.2f}%",
-
-                "Risk Level":
-                    "🔴 HIGH",
-
-                "Action":
-                    "HOLD",
-
-                "Status":
-                    "🔴 UNDER REVIEW"
-
-            }
-
-
-            st.session_state.tickets.append(
-                new_ticket
-            )
-
-
-            st.session_state.ticket_message = (
-                f"🎫 Ticket {ticket_id} created successfully."
-            )
-
-
-            st.session_state.ticket_details = new_ticket
-
-            st.rerun()
-
 
         # --------------------------------------------------------
-        # SHOW TICKET DETAILS
+        # TICKET DETAILS
         # --------------------------------------------------------
 
-        if st.session_state.ticket_details:
+        if st.session_state.ticket_raised:
 
             ticket = st.session_state.ticket_details
 
             st.markdown(
                 f"""
-<div class="ticket-card">
+<div class="success-ticket">
 
 <h2>✅ TICKET RAISED SUCCESSFULLY</h2>
 
@@ -1210,7 +1151,7 @@ For this Buildathon demo, the generated OTP is displayed below.
 
 <p><b>📅 Created:</b> {ticket["Created"]}</p>
 
-<p><b>💰 Amount:</b> {ticket["Amount"]}</p>
+<p><b>💰 Transaction Amount:</b> {ticket["Amount"]}</p>
 
 <p><b>📊 Risk Score:</b> {ticket["Risk Score"]}</p>
 
@@ -1226,12 +1167,18 @@ For this Buildathon demo, the generated OTP is displayed below.
             )
 
             st.success(
-                "🎫 Security team has received the payment review ticket."
+                f"🎫 Security team has received ticket "
+                f"{ticket['Ticket ID']}."
+            )
+
+            st.info(
+                "Payment remains on HOLD until the security "
+                "team resolves the ticket."
             )
 
 
     # ============================================================
-    # LOW
+    # LOW RISK
     # ============================================================
 
     else:
@@ -1251,7 +1198,6 @@ For this Buildathon demo, the generated OTP is displayed below.
 
     st.header("📋 Transaction Summary")
 
-
     if risk_level == "MEDIUM":
 
         two_fa_status = (
@@ -1264,19 +1210,17 @@ For this Buildathon demo, the generated OTP is displayed below.
 
         two_fa_status = "NO"
 
-
     if risk_level == "HIGH":
 
         ticket_status = (
             "🎫 RAISED"
-            if st.session_state.ticket_details
+            if st.session_state.ticket_raised
             else "NOT RAISED"
         )
 
     else:
 
         ticket_status = "NOT REQUIRED"
-
 
     summary = pd.DataFrame({
 
@@ -1326,7 +1270,6 @@ For this Buildathon demo, the generated OTP is displayed below.
 
     })
 
-
     st.dataframe(
         summary,
         use_container_width=True,
@@ -1341,7 +1284,6 @@ For this Buildathon demo, the generated OTP is displayed below.
     st.header(
         "🧠 Decision Engine — Live Decision Timeline"
     )
-
 
     timeline = [
 
@@ -1363,7 +1305,6 @@ For this Buildathon demo, the generated OTP is displayed below.
 
     ]
 
-
     if risk_level == "HIGH":
 
         timeline += [
@@ -1372,14 +1313,13 @@ For this Buildathon demo, the generated OTP is displayed below.
 
             (
                 "🎫 Security ticket raised"
-                if st.session_state.ticket_details
+                if st.session_state.ticket_raised
                 else "🎫 Security ticket required"
             ),
 
             "🛡️ Security Operations review initiated"
 
         ]
-
 
     elif risk_level == "MEDIUM":
 
@@ -1395,7 +1335,6 @@ For this Buildathon demo, the generated OTP is displayed below.
 
         ]
 
-
     else:
 
         timeline += [
@@ -1406,7 +1345,6 @@ For this Buildathon demo, the generated OTP is displayed below.
 
         ]
 
-
     for item in timeline:
 
         st.markdown(
@@ -1416,13 +1354,12 @@ For this Buildathon demo, the generated OTP is displayed below.
 
 
 # ================================================================
-# SECURITY OPERATIONS — TICKETS
+# LIVE SECURITY TICKETS
 # ================================================================
 
 st.divider()
 
 st.header("🎫 Live Security Tickets")
-
 
 if st.session_state.tickets:
 
@@ -1430,18 +1367,15 @@ if st.session_state.tickets:
         st.session_state.tickets
     )
 
-
     st.dataframe(
         ticket_df,
         use_container_width=True,
         hide_index=True
     )
 
-
     st.subheader(
         "🔧 Ticket Management"
     )
-
 
     for index, ticket in enumerate(
         st.session_state.tickets
@@ -1451,11 +1385,9 @@ if st.session_state.tickets:
             [2, 4, 2]
         )
 
-
         t1.write(
             f"🎫 **{ticket['Ticket ID']}**"
         )
-
 
         t2.write(
             f"{ticket['Status']} | "
@@ -1463,33 +1395,21 @@ if st.session_state.tickets:
             f"{ticket['Risk Score']}"
         )
 
-
         if ticket["Status"] == "🔴 UNDER REVIEW":
 
-            if t3.button(
+            st.button(
                 "✅ RESOLVE",
                 key=f"resolve_ticket_{index}",
-                use_container_width=True
-            ):
-
-                st.session_state.tickets[
-                    index
-                ]["Status"] = "🟢 RESOLVED"
-
-
-                st.session_state.ticket_message = (
-                    f"Ticket {ticket['Ticket ID']} resolved."
-                )
-
-
-                st.rerun()
+                use_container_width=True,
+                on_click=resolve_ticket,
+                args=(index,)
+            )
 
         else:
 
             t3.success(
                 "RESOLVED"
             )
-
 
 else:
 
@@ -1506,12 +1426,10 @@ st.divider()
 
 st.header("💰 PayRecover AI")
 
-
 failed_payment = st.checkbox(
     "❌ Simulate Failed Payment",
     key="failed_payment"
 )
-
 
 if failed_payment:
 
@@ -1519,9 +1437,7 @@ if failed_payment:
         "❌ PAYMENT FAILED"
     )
 
-
     f1, f2 = st.columns(2)
-
 
     with f1:
 
@@ -1536,7 +1452,6 @@ if failed_payment:
             ]
         )
 
-
         payment_method = st.selectbox(
             "Payment Method",
             [
@@ -1547,14 +1462,12 @@ if failed_payment:
             ]
         )
 
-
         retry_count = st.number_input(
             "Previous Retry Count",
             min_value=0,
             max_value=20,
             value=0
         )
-
 
     with f2:
 
@@ -1565,14 +1478,12 @@ if failed_payment:
             value=5
         )
 
-
         customer_success_rate = st.slider(
             "Customer Success Rate",
             0.0,
             1.0,
             0.70
         )
-
 
         method_success_rate = st.slider(
             "Method Success Rate",
@@ -1581,7 +1492,6 @@ if failed_payment:
             0.65
         )
 
-
         previous_failures = st.number_input(
             "Previous Failures",
             min_value=0,
@@ -1589,10 +1499,9 @@ if failed_payment:
             value=1
         )
 
-
-    # ============================================================
-    # RECOVERY INPUT
-    # ============================================================
+    # ------------------------------------------------------------
+    # RECOVERY MODEL
+    # ------------------------------------------------------------
 
     recovery_input = pd.DataFrame([{
 
@@ -1617,9 +1526,7 @@ if failed_payment:
             previous_failures,
 
         "is_international":
-            int(
-                international == "Yes"
-            ),
+            int(international == "Yes"),
 
         "device_type":
             device_type,
@@ -1632,55 +1539,36 @@ if failed_payment:
 
     }])
 
-
     recovery_input = recovery_input[
         recovery_features
     ]
 
-
     recovery_probability = (
-
-        recovery_model
-        .predict_proba(
+        recovery_model.predict_proba(
             recovery_input
-        )[0, 1]
-
-        * 100
-
+        )[0, 1] * 100
     )
-
-
-    # ============================================================
-    # RECOVERY VISUALIZATION
-    # ============================================================
 
     st.subheader(
         "💰 Recovery Probability"
     )
 
-
     rc1, rc2 = st.columns(2)
-
 
     rc1.metric(
         "Recovery Probability",
         f"{recovery_probability:.2f}%"
     )
 
-
     rc2.metric(
         "Payment Status",
         "FAILED"
     )
 
-
     st.progress(
         int(
             min(
-                max(
-                    recovery_probability,
-                    0
-                ),
+                max(recovery_probability, 0),
                 100
             )
         )
@@ -1695,7 +1583,6 @@ if failed_payment:
         "⏰ Smart Retry AI"
     )
 
-
     retry_times = [
         5,
         15,
@@ -1707,9 +1594,7 @@ if failed_payment:
         1440
     ]
 
-
     probabilities = []
-
 
     for retry_time in retry_times:
 
@@ -1729,47 +1614,33 @@ if failed_payment:
 
         }])
 
-
         retry_input = retry_input[
             retry_features
         ]
 
-
         probability = (
-
-            retry_model
-            .predict_proba(
+            retry_model.predict_proba(
                 retry_input
-            )[0, 1]
-
-            * 100
-
+            )[0, 1] * 100
         )
-
 
         probabilities.append(
             probability
         )
 
-
     retry_df = pd.DataFrame({
 
         "Retry Time": [
-
             f"{x} min"
             for x in retry_times
-
         ],
 
         "Success Probability (%)": [
-
             round(x, 2)
             for x in probabilities
-
         ]
 
     })
-
 
     st.dataframe(
         retry_df,
@@ -1777,57 +1648,31 @@ if failed_payment:
         hide_index=True
     )
 
-
-    # ============================================================
-    # GRAPH
-    # ============================================================
-
     st.subheader(
         "📈 Retry Probability Graph"
     )
 
-
     graph_df = pd.DataFrame({
-
         "Predicted Success (%)":
             probabilities
-
     })
 
-
     graph_df.index = [
-
         f"{x} min"
         for x in retry_times
-
     ]
-
 
     st.line_chart(
         graph_df
     )
 
-
-    # ============================================================
-    # BEST RETRY
-    # ============================================================
-
     best_index = int(
-        np.argmax(
-            probabilities
-        )
+        np.argmax(probabilities)
     )
 
+    best_time = retry_times[best_index]
 
-    best_time = retry_times[
-        best_index
-    ]
-
-
-    best_probability = probabilities[
-        best_index
-    ]
-
+    best_probability = probabilities[best_index]
 
     st.success(
         f"⭐ PayRecover AI recommends retrying "
@@ -1835,43 +1680,28 @@ if failed_payment:
         f"{best_probability:.2f}% predicted success."
     )
 
-
-    # ============================================================
-    # RECOVERY SUMMARY
-    # ============================================================
-
     st.subheader(
         "📋 Recovery Summary"
     )
 
-
     r1, r2, r3 = st.columns(3)
-
 
     r1.metric(
         "Recovery Probability",
         f"{recovery_probability:.2f}%"
     )
 
-
     r2.metric(
         "Recommended Retry",
         f"{best_time} min"
     )
-
 
     r3.metric(
         "Retry Success",
         f"{best_probability:.2f}%"
     )
 
-
-    # ============================================================
-    # RECOVERY ACTIONS
-    # ============================================================
-
     x1, x2, x3 = st.columns(3)
-
 
     if x1.button(
         "🔄 SCHEDULE RETRY",
@@ -1883,7 +1713,6 @@ if failed_payment:
             f"Retry scheduled after {best_time} minutes."
         )
 
-
     if x2.button(
         "💳 CHANGE METHOD",
         key="change_method",
@@ -1893,7 +1722,6 @@ if failed_payment:
         st.info(
             "Payment method change selected."
         )
-
 
     if x3.button(
         "🕐 PAY LATER",
@@ -1914,33 +1742,27 @@ st.divider()
 
 st.header("🤖 PaymentOps AI")
 
-
 op1, op2, op3, op4 = st.columns(4)
-
 
 op1.metric(
     "🛡️ FraudShield",
     "ACTIVE"
 )
 
-
 op2.metric(
     "💰 PayRecover",
     "ACTIVE"
 )
-
 
 op3.metric(
     "⏰ Smart Retry",
     "ACTIVE"
 )
 
-
 op4.metric(
     "🛡️ PaymentOps",
     "ACTIVE"
 )
-
 
 st.markdown(
     """
@@ -1997,7 +1819,6 @@ st.divider()
 st.header(
     "🧠 PayShield Decision Engine"
 )
-
 
 st.markdown(
     """
@@ -2061,4 +1882,8 @@ st.caption(
 
 st.caption(
     "AI-powered payment protection and recovery platform"
+)
+
+st.caption(
+    "Razorpay Buildathon Demonstration"
 )
