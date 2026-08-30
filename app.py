@@ -880,13 +880,7 @@ if st.session_state.last_result:
 """,
             unsafe_allow_html=True
         )
-
-
-    # ============================================================
-    # EXPLAINABLE AI
-    # ============================================================
-
-   # ============================================================
+ # ============================================================
 # EXPLAINABLE AI
 # ============================================================
 
@@ -929,7 +923,11 @@ for reason in reasons:
     # AI RECOMMENDATION
     # ============================================================
 
-    st.header("🤖 AI Recommendation")
+   st.header("🤖 AI Recommendation")
+
+if st.session_state.last_result:
+
+    risk_level = st.session_state.last_result["level"]
 
     if risk_level == "HIGH":
 
@@ -953,10 +951,14 @@ for reason in reasons:
         )
 
     st.info(
-        "🤖 PayShield recommends: "
-        + recommendation
+        "🤖 PayShield recommends: " + recommendation
     )
 
+else:
+
+    st.info(
+        "🤖 Run AI Fraud Detection to generate a recommendation."
+    )
 
     # ============================================================
     # SECURITY CENTER
