@@ -1,0 +1,18 @@
+{
+    "fraud_model": {
+        "model": "Logistic Regression",
+        "PR_AUC": 0.3327631498492925,
+        "ROC_AUC": 0.8114466907850808,
+        "leakage_removed": "post_auth_risk_score"
+    },
+    "recovery_model_previous": {
+        "model": "XGBoost",
+        "PR_AUC": 0.485962,
+        "ROC_AUC": 0.685674
+    },
+    "smart_retry_model_previous": {
+        "model": "XGBoost",
+        "PR_AUC": 0.599439,
+        "ROC_AUC": 0.725797
+    }
+}

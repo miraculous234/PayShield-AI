@@ -1,0 +1,1 @@
+["amount", "payment_method", "failure_reason", "retry_count", "minutes_since_failure", "customer_success_rate", "method_success_rate", "previous_failures", "is_international", "device_type", "hour", "day_of_week"]
