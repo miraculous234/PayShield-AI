@@ -28,37 +28,16 @@ st.set_page_config(
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-FRAUD_MODEL = os.path.join(
-    BASE_DIR, "models", "fraud_model.pkl"
-)
+FRAUD_MODEL = os.path.join(BASE_DIR, "models", "fraud_model.pkl")
+RECOVERY_MODEL = os.path.join(BASE_DIR, "models", "recovery_model.pkl")
+RETRY_MODEL = os.path.join(BASE_DIR, "models", "retry_model.pkl")
 
-RECOVERY_MODEL = os.path.join(
-    BASE_DIR, "models", "recovery_model.pkl"
-)
+FRAUD_FEATURES = os.path.join(BASE_DIR, "config", "fraud_features.json")
+RECOVERY_FEATURES = os.path.join(BASE_DIR, "config", "recovery_features.json")
+RETRY_FEATURES = os.path.join(BASE_DIR, "config", "retry_features.json")
 
-RETRY_MODEL = os.path.join(
-    BASE_DIR, "models", "retry_model.pkl"
-)
-
-FRAUD_FEATURES = os.path.join(
-    BASE_DIR, "config", "fraud_features.json"
-)
-
-RECOVERY_FEATURES = os.path.join(
-    BASE_DIR, "config", "recovery_features.json"
-)
-
-RETRY_FEATURES = os.path.join(
-    BASE_DIR, "config", "retry_features.json"
-)
-
-FRAUD_DATA = os.path.join(
-    BASE_DIR, "data", "fraud_test.csv"
-)
-
-RECOVERY_DATA = os.path.join(
-    BASE_DIR, "data", "recovery_full.csv"
-)
+FRAUD_DATA = os.path.join(BASE_DIR, "data", "fraud_test.csv")
+RECOVERY_DATA = os.path.join(BASE_DIR, "data", "recovery_full.csv")
 
 
 # ============================================================
@@ -76,11 +55,15 @@ DEFAULTS = {
     "analysis_id": None,
     "recovery_result": None,
     "retry_result": None,
-    "scheduled_retry": None,
-    "change_method": False,
-    "pay_later": False,
-}
 
+    # Recovery actions
+    "scheduled_retry": None,
+    "method_changed": False,
+    "pay_later_selected": False,
+
+    # Failed payment
+    "failed_payment": False
+}
 
 for key, value in DEFAULTS.items():
     if key not in st.session_state:
@@ -201,9 +184,11 @@ st.divider()
 
 @st.cache_resource
 def load_models():
+
     fraud = joblib.load(FRAUD_MODEL)
     recovery = joblib.load(RECOVERY_MODEL)
     retry = joblib.load(RETRY_MODEL)
+
     return fraud, recovery, retry
 
 
@@ -499,18 +484,15 @@ a.metric(
     f"{total_transactions:,}"
 )
 
-
 b.metric(
     "🟢 Low Risk",
     f"{safe_count:,}"
 )
 
-
 c.metric(
     "🔴 Fraud / High Risk",
     f"{fraud_count:,}"
 )
-
 
 d.metric(
     "💰 Recovered",
@@ -543,18 +525,15 @@ soc1.metric(
     "ALLOW"
 )
 
-
 soc2.metric(
     "🟠 MEDIUM",
     "2FA"
 )
 
-
 soc3.metric(
     "🔴 HIGH",
     "HOLD"
 )
-
 
 soc4.metric(
     "🎫 ACTIVE TICKETS",
@@ -625,7 +604,9 @@ if history_columns:
 
 else:
 
-    st.info("Transaction history columns are not available.")
+    st.info(
+        "Transaction history columns are not available."
+    )
 
 
 # ============================================================
@@ -634,14 +615,9 @@ else:
 
 if analyze:
 
-    # --------------------------------------------------------
-    # CURRENT TIME
-    # --------------------------------------------------------
-
     now = datetime.now()
 
     hour = now.hour
-
     day = now.weekday()
 
 
@@ -800,51 +776,42 @@ if analyze:
     if risk_score >= 70:
 
         risk_level = "HIGH"
-
         action = "HOLD"
-
         icon = "🔴"
 
     elif risk_score >= 40:
 
         risk_level = "MEDIUM"
-
         action = "2FA"
-
         icon = "🟠"
 
     else:
 
         risk_level = "LOW"
-
         action = "ALLOW"
-
         icon = "🟢"
 
 
     # --------------------------------------------------------
-    # RESET SECURITY FOR NEW ANALYSIS
+    # RESET SECURITY + RECOVERY ACTIONS
     # --------------------------------------------------------
 
     st.session_state.generated_otp = None
-
     st.session_state.otp_expiry = None
-
     st.session_state.otp_verified = False
-
     st.session_state.otp_attempts = 0
-
     st.session_state.ticket_details = None
 
     st.session_state.scheduled_retry = None
+    st.session_state.method_changed = False
+    st.session_state.pay_later_selected = False
 
-    st.session_state.change_method = False
-
-    st.session_state.pay_later = False
+    st.session_state.recovery_result = None
+    st.session_state.retry_result = None
 
 
     # --------------------------------------------------------
-    # SAVE COMPLETE RESULT
+    # SAVE RESULT
     # --------------------------------------------------------
 
     analysis_id = (
@@ -930,6 +897,7 @@ if result:
     amount_to_monthly_spend = float(
         result["amount_to_monthly_spend"]
     )
+
 
     icon = {
         "LOW": "🟢",
@@ -1185,10 +1153,6 @@ if result:
         )
 
 
-        # ----------------------------------------------------
-        # SEND OTP
-        # ----------------------------------------------------
-
         if st.session_state.generated_otp is None:
 
             if st.button(
@@ -1213,20 +1177,12 @@ if result:
                 )
 
                 st.session_state.otp_verified = False
-
                 st.session_state.otp_attempts = 0
 
                 st.rerun()
 
 
-        # ----------------------------------------------------
-        # OTP DISPLAY
-        # ----------------------------------------------------
-
         if st.session_state.generated_otp:
-
-            expiry = st.session_state.otp_expiry
-
 
             st.markdown(
                 f"""
@@ -1249,10 +1205,6 @@ the OTP is displayed on screen.
             )
 
 
-            # ------------------------------------------------
-            # VERIFIED
-            # ------------------------------------------------
-
             if st.session_state.otp_verified:
 
                 st.success(
@@ -1267,10 +1219,6 @@ the OTP is displayed on screen.
                     "Payment has been approved after successful 2FA verification."
                 )
 
-
-            # ------------------------------------------------
-            # VERIFY
-            # ------------------------------------------------
 
             else:
 
@@ -1287,8 +1235,6 @@ the OTP is displayed on screen.
                     type="primary",
                     use_container_width=True
                 ):
-
-                    # Check expiry
 
                     if (
                         st.session_state.otp_expiry
@@ -1330,10 +1276,6 @@ the OTP is displayed on screen.
                         )
 
 
-                # --------------------------------------------
-                # RESEND OTP
-                # --------------------------------------------
-
                 if st.button(
                     "🔄 RESEND OTP",
                     key="resend_otp",
@@ -1355,7 +1297,6 @@ the OTP is displayed on screen.
                     )
 
                     st.session_state.otp_verified = False
-
                     st.session_state.otp_attempts = 0
 
                     st.rerun()
@@ -1380,10 +1321,6 @@ the OTP is displayed on screen.
             "Create a security ticket for the security team."
         )
 
-
-        # ----------------------------------------------------
-        # RAISE TICKET
-        # ----------------------------------------------------
 
         if st.session_state.ticket_details is None:
 
@@ -1452,13 +1389,8 @@ the OTP is displayed on screen.
                     new_ticket
                 )
 
-
                 st.rerun()
 
-
-        # ----------------------------------------------------
-        # TICKET DETAILS
-        # ----------------------------------------------------
 
         if st.session_state.ticket_details:
 
@@ -1553,23 +1485,14 @@ the OTP is displayed on screen.
         "Field": [
 
             "Transaction ID",
-
             "Amount",
-
             "Risk Score",
-
             "Risk Level",
-
             "Fraud Action",
-
             "2FA",
-
             "Security Ticket",
-
             "Recovery",
-
             "Best Retry",
-
             "Retry Success"
 
         ],
@@ -1577,23 +1500,14 @@ the OTP is displayed on screen.
         "Value": [
 
             result["analysis_id"],
-
             f"₹{amount:,.2f}",
-
             f"{risk_score:.2f}%",
-
             f"{icon} {risk_level}",
-
             action,
-
             two_fa_status,
-
             ticket_status,
-
             "Available after payment failure",
-
             "Available after payment failure",
-
             "Available after payment failure"
 
         ]
@@ -1620,19 +1534,12 @@ the OTP is displayed on screen.
     timeline = [
 
         "✓ Payment received",
-
         "✓ Customer behaviour evaluated",
-
         "✓ Merchant risk evaluated",
-
         "✓ Device and IP risk evaluated",
-
         "✓ FraudShield AI executed",
-
         f"✓ Risk Score: {risk_score:.2f}%",
-
         f"✓ Risk Level: {icon} {risk_level}",
-
         f"✓ Decision: {action}"
 
     ]
@@ -1675,7 +1582,6 @@ the OTP is displayed on screen.
         timeline.extend([
 
             "🟢 Security check passed",
-
             "✓ Payment approved"
 
         ])
@@ -2119,11 +2025,9 @@ if failed_payment:
             np.argmax(probabilities)
         )
 
-
         best_time = retry_times[
             best_index
         ]
-
 
         best_probability = probabilities[
             best_index
@@ -2132,7 +2036,6 @@ if failed_payment:
     else:
 
         best_time = 30
-
         best_probability = 0.0
 
 
@@ -2187,97 +2090,109 @@ if failed_payment:
     )
 
 
- # ========================================================
-# RECOVERY ACTIONS
-# ========================================================
+    # ========================================================
+    # RECOVERY ACTIONS
+    # ========================================================
 
-st.subheader("⚡ Recovery Actions")
+    st.subheader("⚡ Recovery Actions")
 
-x1, x2, x3 = st.columns(3)
 
-# ---------------- SCHEDULE RETRY ----------------
+    x1, x2, x3 = st.columns(3)
 
-with x1:
-    if st.button(
-        "🔄 SCHEDULE RETRY",
-        key="schedule_retry_btn",
-        use_container_width=True
-    ):
-        scheduled_time = (
-            datetime.now() +
-            timedelta(minutes=best_time)
+
+    # --------------------------------------------------------
+    # SCHEDULE RETRY
+    # --------------------------------------------------------
+
+    with x1:
+
+        if st.button(
+            "🔄 SCHEDULE RETRY",
+            key="schedule_retry_btn",
+            use_container_width=True
+        ):
+
+            scheduled_time = (
+                datetime.now()
+                +
+                timedelta(minutes=best_time)
+            )
+
+
+            st.session_state.scheduled_retry = (
+                scheduled_time.strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            )
+
+
+            st.success(
+                f"✅ Retry scheduled after "
+                f"{best_time} minutes."
+            )
+
+
+    # --------------------------------------------------------
+    # CHANGE METHOD
+    # --------------------------------------------------------
+
+    with x2:
+
+        if st.button(
+            "💳 CHANGE METHOD",
+            key="change_method_btn",
+            use_container_width=True
+        ):
+
+            # IMPORTANT:
+            # True ONLY after button is clicked
+
+            st.session_state.method_changed = True
+
+
+    # --------------------------------------------------------
+    # PAY LATER
+    # --------------------------------------------------------
+
+    with x3:
+
+        if st.button(
+            "🕐 PAY LATER",
+            key="pay_later_btn",
+            use_container_width=True
+        ):
+
+            # IMPORTANT:
+            # True ONLY after button is clicked
+
+            st.session_state.pay_later_selected = True
+
+
+    # ========================================================
+    # DISPLAY SELECTED ACTIONS
+    # ========================================================
+
+    if st.session_state.scheduled_retry:
+
+        st.info(
+            "⏰ Scheduled retry: "
+            +
+            st.session_state.scheduled_retry
         )
 
-        st.session_state.scheduled_retry = (
-            scheduled_time.strftime("%Y-%m-%d %H:%M:%S")
-        )
+
+    if st.session_state.method_changed:
 
         st.success(
-            f"✅ Retry scheduled after {best_time} minutes."
+            "💳 Alternative payment method selected."
         )
 
-# ---------------- CHANGE METHOD ----------------
 
-with x2:
-    if st.button(
-        "💳 CHANGE METHOD",
-        key="change_method_btn",
-        use_container_width=True
-    ):
-        st.session_state.method_changed = True
+    if st.session_state.pay_later_selected:
 
-# ---------------- PAY LATER ----------------
-
-with x3:
-    if st.button(
-        "🕐 PAY LATER",
-        key="pay_later_btn",
-        use_container_width=True
-    ):
-        st.session_state.pay_later_selected = True
-
-
-# ========================================================
-# DISPLAY SELECTED ACTIONS
-# ========================================================
-
-if st.session_state.scheduled_retry:
-    st.info(
-        "⏰ Scheduled retry: " +
-        st.session_state.scheduled_retry
-    )
-
-if st.session_state.method_changed:
-    st.success(
-        "💳 Alternative payment method selected."
-    )
-
-if st.session_state.pay_later_selected:
-    st.success(
-        "🕐 Pay Later option selected."
-    )
-    
-
-
-# ========================================================
-# DISPLAY SELECTED ACTIONS
-# ========================================================
-
-if st.session_state.scheduled_retry:
-    st.info(
-        "⏰ Scheduled retry: " +
-        st.session_state.scheduled_retry
-    )
-
-if st.session_state.method_changed:
-    st.success(
-        "💳 Alternative payment method selected."
-    )
-
-if st.session_state.pay_later_selected:
-    st.success(
-        "🕐 Pay Later option selected."
-    )
+        st.success(
+            "🕐 Pay Later option selected."
+        )
 
 
 # ============================================================
@@ -2297,18 +2212,15 @@ op1.metric(
     "ACTIVE"
 )
 
-
 op2.metric(
     "💰 PayRecover",
     "ACTIVE"
 )
 
-
 op3.metric(
     "⏰ Smart Retry",
     "ACTIVE"
 )
-
 
 op4.metric(
     "🛡️ PaymentOps",
