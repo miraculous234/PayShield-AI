@@ -583,9 +583,8 @@ except Exception as e:
 
     st.stop()
 
-
 # ============================================================
-# SIDEBAR
+# SIDEBAR — PAYMENT SIMULATOR
 # ============================================================
 
 st.sidebar.title("🎛️ Payment Simulator")
@@ -594,6 +593,25 @@ st.sidebar.caption(
     "Configure a transaction and run PayShield AI."
 )
 
+# ------------------------------------------------------------
+# DEMO / AI MODE
+# ------------------------------------------------------------
+
+demo_mode = st.sidebar.selectbox(
+    "🎯 Demo Risk Scenario",
+    [
+        "🤖 AI Model",
+        "🟢 LOW — ALLOW",
+        "🟠 MEDIUM — 2FA",
+        "🔴 HIGH — HOLD + TICKET"
+    ]
+)
+
+st.sidebar.divider()
+
+# ------------------------------------------------------------
+# TRANSACTION DETAILS
+# ------------------------------------------------------------
 
 amount = st.sidebar.number_input(
     "Transaction Amount (₹)",
@@ -603,13 +621,15 @@ amount = st.sidebar.number_input(
     step=500.0
 )
 
-
 monthly_spend = st.sidebar.number_input(
     "Customer Monthly Spend (₹)",
     min_value=500.0,
     value=10000.0
 )
 
+# ------------------------------------------------------------
+# RISK SIGNALS
+# ------------------------------------------------------------
 
 merchant_risk = st.sidebar.slider(
     "Merchant Risk Score",
@@ -618,14 +638,12 @@ merchant_risk = st.sidebar.slider(
     0.25
 )
 
-
 ip_risk = st.sidebar.slider(
     "IP Risk Score",
     0.0,
     1.0,
     0.30
 )
-
 
 txn_1h = st.sidebar.number_input(
     "Transactions in 1 Hour",
@@ -634,14 +652,12 @@ txn_1h = st.sidebar.number_input(
     value=2
 )
 
-
 txn_24h = st.sidebar.number_input(
     "Transactions in 24 Hours",
     min_value=0,
     max_value=5000,
     value=5
 )
-
 
 failed_24h = st.sidebar.number_input(
     "Failed Transactions (24h)",
@@ -650,24 +666,37 @@ failed_24h = st.sidebar.number_input(
     value=1
 )
 
+# ------------------------------------------------------------
+# TRANSACTION TYPE
+# ------------------------------------------------------------
 
 international = st.sidebar.selectbox(
     "International Transaction",
     ["No", "Yes"]
 )
 
-
 payment_channel = st.sidebar.selectbox(
     "Payment Channel",
-    ["UPI", "CARD", "WALLET", "NETBANKING"]
+    [
+        "UPI",
+        "CARD",
+        "WALLET",
+        "NETBANKING"
+    ]
 )
-
 
 device_type = st.sidebar.selectbox(
     "Device Type",
-    ["Mobile", "Desktop", "Tablet"]
+    [
+        "Mobile",
+        "Desktop",
+        "Tablet"
+    ]
 )
 
+# ------------------------------------------------------------
+# CUSTOMER / BEHAVIOUR
+# ------------------------------------------------------------
 
 geo_distance = st.sidebar.number_input(
     "Geo Distance From Last Txn",
@@ -675,13 +704,11 @@ geo_distance = st.sidebar.number_input(
     value=10.0
 )
 
-
 amount_deviation = st.sidebar.number_input(
     "Amount Deviation From User Mean",
     min_value=0.0,
     value=500.0
 )
-
 
 customer_avg_amount = st.sidebar.number_input(
     "Customer Average Amount",
@@ -689,13 +716,11 @@ customer_avg_amount = st.sidebar.number_input(
     value=1200.0
 )
 
-
 customer_txn_before = st.sidebar.number_input(
     "Customer Transactions Before",
     min_value=0.0,
     value=10.0
 )
-
 
 customer_failed_rate = st.sidebar.slider(
     "Customer Failed Rate",
@@ -704,6 +729,9 @@ customer_failed_rate = st.sidebar.slider(
     0.10
 )
 
+# ------------------------------------------------------------
+# MERCHANT BEHAVIOUR
+# ------------------------------------------------------------
 
 merchant_txn_before = st.sidebar.number_input(
     "Merchant Transactions Before",
@@ -711,13 +739,11 @@ merchant_txn_before = st.sidebar.number_input(
     value=100.0
 )
 
-
 merchant_avg_amount = st.sidebar.number_input(
     "Merchant Average Amount",
     min_value=0.0,
     value=2000.0
 )
-
 
 merchant_fraud_rate = st.sidebar.slider(
     "Merchant Fraud Rate",
@@ -726,6 +752,9 @@ merchant_fraud_rate = st.sidebar.slider(
     0.02
 )
 
+# ------------------------------------------------------------
+# AUTHENTICATION RISK
+# ------------------------------------------------------------
 
 post_auth_risk = st.sidebar.slider(
     "Post-Auth Risk Score",
@@ -734,6 +763,11 @@ post_auth_risk = st.sidebar.slider(
     0.20
 )
 
+st.sidebar.divider()
+
+# ------------------------------------------------------------
+# ANALYZE BUTTON
+# ------------------------------------------------------------
 
 analyze = st.sidebar.button(
     "🔍 ANALYZE PAYMENT",
@@ -1074,10 +1108,36 @@ if analyze:
 
     risk_score = fraud_probability * 100
 
+# --------------------------------------------------------
+# DECISION
+# --------------------------------------------------------
 
-    # --------------------------------------------------------
-    # DECISION
-    # --------------------------------------------------------
+if demo_mode == "🟢 LOW — ALLOW":
+
+    risk_score = 20.0
+    risk_level = "LOW"
+    action = "ALLOW"
+    icon = "🟢"
+
+elif demo_mode == "🟠 MEDIUM — 2FA":
+
+    risk_score = 55.0
+    risk_level = "MEDIUM"
+    action = "2FA"
+    icon = "🟠"
+
+elif demo_mode == "🔴 HIGH — HOLD + TICKET":
+
+    risk_score = 85.0
+    risk_level = "HIGH"
+    action = "HOLD"
+    icon = "🔴"
+
+else:
+
+    # REAL AI MODEL RESULT
+
+    risk_score = fraud_probability * 100
 
     if risk_score >= 70:
 
@@ -1096,8 +1156,8 @@ if analyze:
         risk_level = "LOW"
         action = "ALLOW"
         icon = "🟢"
-
-
+   
+   
     # --------------------------------------------------------
     # RESET SECURITY + RECOVERY ACTIONS
     # --------------------------------------------------------
