@@ -124,87 +124,291 @@ if "otp_expiry" not in st.session_state:
 if "otp_attempts" not in st.session_state:
     st.session_state.otp_attempts = 0
 
-
-# ================================================================
-# CUSTOM CSS
-# ================================================================
+# ============================================================
+# PREMIUM UI CSS
+# ============================================================
 
 st.markdown("""
 <style>
 
 .block-container {
-    padding-top: 1.5rem;
+    padding-top: 1.2rem;
     padding-bottom: 3rem;
+    max-width: 1500px;
 }
 
+/* MAIN TITLE */
 .title {
-    font-size: 45px;
-    font-weight: 800;
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -1px;
 }
 
 .subtitle {
     font-size: 17px;
     color: #9ca3af;
+    margin-top: -8px;
 }
 
-.card {
-    padding: 20px;
+/* SIDEBAR */
+section[data-testid="stSidebar"] {
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+    font-weight: 800;
+}
+
+/* METRIC CARDS */
+[data-testid="stMetric"] {
+    background: linear-gradient(
+        145deg,
+        rgba(255,255,255,0.06),
+        rgba(255,255,255,0.02)
+    );
+    border: 1px solid rgba(255,255,255,0.10);
     border-radius: 16px;
-    margin: 8px 0;
-    border: 1px solid rgba(255,255,255,.12);
+    padding: 16px;
+    transition: all 0.25s ease;
 }
 
+[data-testid="stMetric"]:hover {
+    transform: translateY(-4px);
+    border-color: rgba(79,140,255,0.55);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+}
+
+/* GENERAL CARDS */
+.card {
+    padding: 24px;
+    border-radius: 18px;
+    margin: 12px 0;
+    border: 1px solid rgba(255,255,255,.12);
+    background: linear-gradient(
+        145deg,
+        rgba(255,255,255,.06),
+        rgba(255,255,255,.025)
+    );
+    transition: all .25s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(0,0,0,.25);
+}
+
+/* RISK CARDS */
 .green-card {
-    background: rgba(20,130,65,.20);
+    background: linear-gradient(
+        145deg,
+        rgba(20,130,65,.28),
+        rgba(20,130,65,.08)
+    );
     border: 1px solid #21c354;
 }
 
 .orange-card {
-    background: rgba(190,120,0,.20);
+    background: linear-gradient(
+        145deg,
+        rgba(190,120,0,.28),
+        rgba(190,120,0,.08)
+    );
     border: 1px solid #ffa500;
 }
 
 .red-card {
-    background: rgba(190,20,20,.20);
+    background: linear-gradient(
+        145deg,
+        rgba(190,20,20,.28),
+        rgba(190,20,20,.08)
+    );
     border: 1px solid #ff4b4b;
 }
 
 .blue-card {
-    background: rgba(40,100,180,.18);
+    background: linear-gradient(
+        145deg,
+        rgba(40,100,180,.28),
+        rgba(40,100,180,.08)
+    );
     border: 1px solid #4f8cff;
 }
 
-.timeline {
-    padding: 13px;
-    margin: 7px 0;
-    border-left: 4px solid #4f8cff;
-    border-radius: 6px;
-    background: rgba(60,65,80,.5);
+/* BUTTONS */
+.stButton > button {
+    border-radius: 12px;
+    min-height: 44px;
+    font-weight: 700;
+    transition: all .2s ease;
 }
 
-.big-number {
-    font-size: 30px;
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+}
+
+/* PRIMARY ANALYZE BUTTON */
+.stButton > button[kind="primary"] {
+    border-radius: 14px;
     font-weight: 800;
+}
+
+/* INPUTS */
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div {
+    border-radius: 10px;
+}
+
+/* PROGRESS BAR */
+.stProgress > div > div > div {
+    border-radius: 20px;
+}
+
+/* TICKET */
+.ticket-card {
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #ff4b4b;
+    background: rgba(190,20,20,.12);
+    margin-top: 15px;
+}
+
+/* OTP */
+.otp-card {
+    padding: 22px;
+    border-radius: 18px;
+    border: 1px solid #ffa500;
+    background: linear-gradient(
+        145deg,
+        rgba(190,120,0,.20),
+        rgba(190,120,0,.05)
+    );
+    margin-top: 15px;
+    text-align: center;
+}
+
+/* SUCCESS */
+.success-ticket {
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid #21c354;
+    background: rgba(20,130,65,.15);
+    margin-top: 15px;
+}
+
+/* TIMELINE */
+.timeline {
+    padding: 14px 18px;
+    margin: 8px 0;
+    border-left: 4px solid #4f8cff;
+    border-radius: 8px;
+    background: rgba(60,65,80,.45);
+    transition: all .2s ease;
+}
+
+.timeline:hover {
+    transform: translateX(5px);
+    background: rgba(79,140,255,.12);
+}
+
+/* DATAFRAME */
+[data-testid="stDataFrame"] {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* SECTION HEADERS */
+h1, h2, h3 {
+    font-weight: 800;
+}
+
+/* DIVIDERS */
+hr {
+    margin: 25px 0;
+}
+
+/* BADGES */
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 800;
+    margin: 3px;
+}
+
+.badge-green {
+    background: rgba(33,195,84,.18);
+    border: 1px solid #21c354;
+}
+
+.badge-orange {
+    background: rgba(255,165,0,.18);
+    border: 1px solid #ffa500;
+}
+
+.badge-red {
+    background: rgba(255,75,75,.18);
+    border: 1px solid #ff4b4b;
+}
+
+/* INFO BOX */
+.info-panel {
+    padding: 18px;
+    border-radius: 16px;
+    background: rgba(79,140,255,.08);
+    border: 1px solid rgba(79,140,255,.3);
+}
+
+/* MOBILE */
+@media (max-width: 768px) {
+    .title {
+        font-size: 34px;
+    }
+
+    .subtitle {
+        font-size: 14px;
+    }
 }
 
 </style>
 """, unsafe_allow_html=True)
-
 
 # ================================================================
 # HEADER
 # ================================================================
 
 st.markdown(
-    '<div class="title">🛡️ PayShield AI</div>',
+    """
+    <div class="title">🛡️ PayShield AI</div>
+    <div class="subtitle">
+        AI-Powered Payment Protection • FraudShield •
+        PayRecover AI • Smart Retry • PaymentOps
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
 st.markdown(
-    '<div class="subtitle">'
-    'AI-Powered Payment Protection • FraudShield • '
-    'PayRecover AI • PaymentOps'
-    '</div>',
+    """
+    <div style="
+        margin-top:18px;
+        padding:12px 18px;
+        border-radius:12px;
+        background:rgba(33,195,84,.08);
+        border:1px solid rgba(33,195,84,.25);
+    ">
+        🟢 <b>PAYMENT SECURITY SYSTEM ONLINE</b>
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        FraudShield ACTIVE
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        PayRecover ACTIVE
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        PaymentOps ACTIVE
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
@@ -484,16 +688,30 @@ soc4.metric(
 )
 
 
-st.info("""
-🟢 LOW RISK → ALLOW
+st.markdown(
+    """
+    <div class="info-panel">
 
-🟠 MEDIUM RISK → 2FA VERIFICATION
+    <h3>🛡️ Security Decision Protocol</h3>
 
-🔴 HIGH RISK → HOLD + SECURITY TICKET
+    <span class="badge badge-green">🟢 LOW → ALLOW</span>
 
-❌ FAILED PAYMENT → PAYRECOVER AI → SMART RETRY AI
-""")
+    <span class="badge badge-orange">🟠 MEDIUM → 2FA</span>
 
+    <span class="badge badge-red">🔴 HIGH → HOLD</span>
+
+    <br><br>
+
+    ❌ Failed Payment
+    &nbsp;→&nbsp;
+    💰 PayRecover AI
+    &nbsp;→&nbsp;
+    ⏰ Smart Retry AI
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 # ================================================================
 # 📜 TRANSACTION HISTORY
