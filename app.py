@@ -965,72 +965,108 @@ else:
     st.session_state.last_result = result
 
 
-    # ========================================================
-    # FORCE RERUN TO SHOW POPUP
-    # ========================================================
+# ========================================================
+# REFRESH PAGE AFTER ANALYSIS
+# ========================================================
 
-    st.rerun()
-
+st.rerun()
 
 # ============================================================
 # 2FA POPUP
 # ============================================================
 
-if st.session_state.show_2fa_popup:
+if (
+    st.session_state.show_2fa_popup
+    and st.session_state.last_result
+    and st.session_state.last_result["level"] == "MEDIUM"
+):
 
-    @st.dialog("🟠 Two-Factor Authentication")
+    @st.dialog("🟠 PayShield AI — Security Verification")
     def two_factor_popup():
 
         st.warning(
-            "🟠 MEDIUM-RISK PAYMENT — 2FA REQUIRED"
+            "🟠 MEDIUM-RISK TRANSACTION"
         )
 
-        st.write(
-            "PayShield AI detected a medium-risk transaction."
-        )
+        st.subheader("🔐 Customer Verification Required")
 
         st.write(
-            "Customer verification is required before "
-            "the payment can be approved."
+            "PayShield AI detected a medium-risk payment. "
+            "Please verify the customer using 2FA before "
+            "the transaction is approved."
         )
 
         st.divider()
 
-        st.markdown(
-            f"""
-<div class="otp-card">
+        # ----------------------------------------------------
+        # TRANSACTION DETAILS
+        # ----------------------------------------------------
 
-<h3>📲 OTP GENERATED</h3>
+        result = st.session_state.last_result
 
-<p>For this Buildathon demonstration, your OTP is:</p>
+        d1, d2 = st.columns(2)
 
-<h1>🔐 {st.session_state.generated_otp}</h1>
+        with d1:
+            st.metric(
+                "Transaction",
+                result["analysis_id"]
+            )
 
-<p>OTP expires in 5 minutes.</p>
+        with d2:
+            st.metric(
+                "Amount",
+                f"₹{result['amount']:,.2f}"
+            )
 
-</div>
-""",
-            unsafe_allow_html=True
+        st.divider()
+
+        # ----------------------------------------------------
+        # OTP
+        # ----------------------------------------------------
+
+        st.subheader("📲 One-Time Password")
+
+        st.info(
+            "For this Buildathon demonstration, "
+            "the generated OTP is shown below."
+        )
+
+        st.title(
+            f"🔐 {st.session_state.generated_otp}"
+        )
+
+        st.caption(
+            "OTP is valid for 5 minutes."
         )
 
         st.divider()
+
+        # ----------------------------------------------------
+        # OTP INPUT
+        # ----------------------------------------------------
 
         otp_input = st.text_input(
             "Enter 6-digit OTP",
             max_chars=6,
-            key="popup_otp_input"
+            key="popup_otp_input",
+            placeholder="Enter OTP"
         )
+
+        # ----------------------------------------------------
+        # BUTTONS
+        # ----------------------------------------------------
 
         c1, c2 = st.columns(2)
 
         with c1:
 
             if st.button(
-                "🔐 VERIFY 2FA",
+                "🔐 VERIFY & APPROVE",
                 type="primary",
                 use_container_width=True
             ):
 
+                # OTP expired
                 if (
                     st.session_state.otp_expiry
                     and
@@ -1040,35 +1076,43 @@ if st.session_state.show_2fa_popup:
                 ):
 
                     st.error(
-                        "⏰ OTP expired."
+                        "⏰ OTP expired. Please request a new OTP."
                     )
 
+                # Correct OTP
                 elif (
-                    otp_input ==
+                    otp_input
+                    ==
                     st.session_state.generated_otp
                 ):
 
                     st.session_state.otp_verified = True
+
                     st.session_state.show_2fa_popup = False
 
                     st.success(
-                        "✅ 2FA VERIFIED — PAYMENT APPROVED"
+                        "✅ 2FA VERIFIED"
+                    )
+
+                    st.success(
+                        "🟢 Customer verified — PAYMENT APPROVED"
                     )
 
                     st.balloons()
 
                     st.rerun()
 
+                # Incorrect OTP
                 else:
 
                     st.session_state.otp_attempts += 1
 
                     st.error(
-                        "❌ INVALID OTP"
+                        "❌ Invalid OTP"
                     )
 
                     st.warning(
-                        f"Attempts: "
+                        f"Verification attempts: "
                         f"{st.session_state.otp_attempts}"
                     )
 
@@ -1096,7 +1140,23 @@ if st.session_state.show_2fa_popup:
 
                 st.session_state.otp_attempts = 0
 
+                st.success(
+                    "📲 New OTP generated."
+                )
+
                 st.rerun()
+
+        # ----------------------------------------------------
+        # SECURITY INFORMATION
+        # ----------------------------------------------------
+
+        st.divider()
+
+        st.caption(
+            "🛡️ PayShield Security • "
+            "2FA protects medium-risk transactions "
+            "from unauthorized approval."
+        )
 
 
     two_factor_popup()
