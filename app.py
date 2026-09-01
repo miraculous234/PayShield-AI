@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -23,19 +24,16 @@ st.set_page_config(
 # PATHS
 # ================================================================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_DIR = os.path.join(BASE_DIR, "PayShield") if os.path.isdir(os.path.join(BASE_DIR, "PayShield")) else BASE_DIR
+FRAUD_MODEL = r"""/content/PayShield/models/fraud_model.pkl"""
+RECOVERY_MODEL = r"""/content/PayShield/models/recovery_model.pkl"""
+RETRY_MODEL = r"""/content/PayShield/models/retry_model.pkl"""
 
-FRAUD_MODEL = os.path.join(PROJECT_DIR, "models", "fraud_model.pkl")
-RECOVERY_MODEL = os.path.join(PROJECT_DIR, "models", "recovery_model.pkl")
-RETRY_MODEL = os.path.join(PROJECT_DIR, "models", "retry_model.pkl")
+FRAUD_FEATURES = r"""/content/PayShield/config/fraud_features.json"""
+RECOVERY_FEATURES = r"""/content/PayShield/config/recovery_features.json"""
+RETRY_FEATURES = r"""/content/PayShield/config/retry_features.json"""
 
-FRAUD_FEATURES = os.path.join(PROJECT_DIR, "config", "fraud_features.json")
-RECOVERY_FEATURES = os.path.join(PROJECT_DIR, "config", "recovery_features.json")
-RETRY_FEATURES = os.path.join(PROJECT_DIR, "config", "retry_features.json")
-
-FRAUD_DATA = os.path.join(PROJECT_DIR, "data", "fraud_test.csv")
-RECOVERY_DATA = os.path.join(PROJECT_DIR, "data", "recovery_full.csv")
+FRAUD_DATA = r"""/content/PayShield/data/fraud_test.csv"""
+RECOVERY_DATA = r"""/content/PayShield/data/recovery_full.csv"""
 
 
 # ================================================================
@@ -115,300 +113,87 @@ if "otp_verified" not in st.session_state:
 if "ticket_message" not in st.session_state:
     st.session_state.ticket_message = ""
 
-if "generated_otp" not in st.session_state:
-    st.session_state.generated_otp = None
 
-if "otp_expiry" not in st.session_state:
-    st.session_state.otp_expiry = None
-
-if "otp_attempts" not in st.session_state:
-    st.session_state.otp_attempts = 0
-
-# ============================================================
-# PREMIUM UI CSS
-# ============================================================
+# ================================================================
+# CUSTOM CSS
+# ================================================================
 
 st.markdown("""
 <style>
 
 .block-container {
-    padding-top: 1.2rem;
+    padding-top: 1.5rem;
     padding-bottom: 3rem;
-    max-width: 1500px;
 }
 
-/* MAIN TITLE */
 .title {
-    font-size: 48px;
-    font-weight: 900;
-    letter-spacing: -1px;
+    font-size: 45px;
+    font-weight: 800;
 }
 
 .subtitle {
     font-size: 17px;
     color: #9ca3af;
-    margin-top: -8px;
 }
 
-/* SIDEBAR */
-section[data-testid="stSidebar"] {
-    border-right: 1px solid rgba(255,255,255,0.08);
-}
-
-section[data-testid="stSidebar"] h1,
-section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3 {
-    font-weight: 800;
-}
-
-/* METRIC CARDS */
-[data-testid="stMetric"] {
-    background: linear-gradient(
-        145deg,
-        rgba(255,255,255,0.06),
-        rgba(255,255,255,0.02)
-    );
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 16px;
-    padding: 16px;
-    transition: all 0.25s ease;
-}
-
-[data-testid="stMetric"]:hover {
-    transform: translateY(-4px);
-    border-color: rgba(79,140,255,0.55);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-}
-
-/* GENERAL CARDS */
 .card {
-    padding: 24px;
-    border-radius: 18px;
-    margin: 12px 0;
+    padding: 20px;
+    border-radius: 16px;
+    margin: 8px 0;
     border: 1px solid rgba(255,255,255,.12);
-    background: linear-gradient(
-        145deg,
-        rgba(255,255,255,.06),
-        rgba(255,255,255,.025)
-    );
-    transition: all .25s ease;
 }
 
-.card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 35px rgba(0,0,0,.25);
-}
-
-/* RISK CARDS */
 .green-card {
-    background: linear-gradient(
-        145deg,
-        rgba(20,130,65,.28),
-        rgba(20,130,65,.08)
-    );
+    background: rgba(20,130,65,.20);
     border: 1px solid #21c354;
 }
 
 .orange-card {
-    background: linear-gradient(
-        145deg,
-        rgba(190,120,0,.28),
-        rgba(190,120,0,.08)
-    );
+    background: rgba(190,120,0,.20);
     border: 1px solid #ffa500;
 }
 
 .red-card {
-    background: linear-gradient(
-        145deg,
-        rgba(190,20,20,.28),
-        rgba(190,20,20,.08)
-    );
+    background: rgba(190,20,20,.20);
     border: 1px solid #ff4b4b;
 }
 
 .blue-card {
-    background: linear-gradient(
-        145deg,
-        rgba(40,100,180,.28),
-        rgba(40,100,180,.08)
-    );
+    background: rgba(40,100,180,.18);
     border: 1px solid #4f8cff;
 }
 
-/* BUTTONS */
-.stButton > button {
-    border-radius: 12px;
-    min-height: 44px;
-    font-weight: 700;
-    transition: all .2s ease;
-}
-
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,.25);
-}
-
-/* PRIMARY ANALYZE BUTTON */
-.stButton > button[kind="primary"] {
-    border-radius: 14px;
-    font-weight: 800;
-}
-
-/* INPUTS */
-div[data-baseweb="select"] > div,
-div[data-baseweb="input"] > div {
-    border-radius: 10px;
-}
-
-/* PROGRESS BAR */
-.stProgress > div > div > div {
-    border-radius: 20px;
-}
-
-/* TICKET */
-.ticket-card {
-    padding: 20px;
-    border-radius: 15px;
-    border: 1px solid #ff4b4b;
-    background: rgba(190,20,20,.12);
-    margin-top: 15px;
-}
-
-/* OTP */
-.otp-card {
-    padding: 22px;
-    border-radius: 18px;
-    border: 1px solid #ffa500;
-    background: linear-gradient(
-        145deg,
-        rgba(190,120,0,.20),
-        rgba(190,120,0,.05)
-    );
-    margin-top: 15px;
-    text-align: center;
-}
-
-/* SUCCESS */
-.success-ticket {
-    padding: 20px;
-    border-radius: 15px;
-    border: 1px solid #21c354;
-    background: rgba(20,130,65,.15);
-    margin-top: 15px;
-}
-
-/* TIMELINE */
 .timeline {
-    padding: 14px 18px;
-    margin: 8px 0;
+    padding: 13px;
+    margin: 7px 0;
     border-left: 4px solid #4f8cff;
-    border-radius: 8px;
-    background: rgba(60,65,80,.45);
-    transition: all .2s ease;
+    border-radius: 6px;
+    background: rgba(60,65,80,.5);
 }
 
-.timeline:hover {
-    transform: translateX(5px);
-    background: rgba(79,140,255,.12);
-}
-
-/* DATAFRAME */
-[data-testid="stDataFrame"] {
-    border-radius: 14px;
-    overflow: hidden;
-}
-
-/* SECTION HEADERS */
-h1, h2, h3 {
+.big-number {
+    font-size: 30px;
     font-weight: 800;
-}
-
-/* DIVIDERS */
-hr {
-    margin: 25px 0;
-}
-
-/* BADGES */
-.badge {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 800;
-    margin: 3px;
-}
-
-.badge-green {
-    background: rgba(33,195,84,.18);
-    border: 1px solid #21c354;
-}
-
-.badge-orange {
-    background: rgba(255,165,0,.18);
-    border: 1px solid #ffa500;
-}
-
-.badge-red {
-    background: rgba(255,75,75,.18);
-    border: 1px solid #ff4b4b;
-}
-
-/* INFO BOX */
-.info-panel {
-    padding: 18px;
-    border-radius: 16px;
-    background: rgba(79,140,255,.08);
-    border: 1px solid rgba(79,140,255,.3);
-}
-
-/* MOBILE */
-@media (max-width: 768px) {
-    .title {
-        font-size: 34px;
-    }
-
-    .subtitle {
-        font-size: 14px;
-    }
 }
 
 </style>
 """, unsafe_allow_html=True)
+
 
 # ================================================================
 # HEADER
 # ================================================================
 
 st.markdown(
-    """
-    <div class="title">🛡️ PayShield AI</div>
-    <div class="subtitle">
-        AI-Powered Payment Protection • FraudShield •
-        PayRecover AI • Smart Retry • PaymentOps
-    </div>
-    """,
+    '<div class="title">🛡️ PayShield AI</div>',
     unsafe_allow_html=True
 )
 
 st.markdown(
-    """
-    <div style="
-        margin-top:18px;
-        padding:12px 18px;
-        border-radius:12px;
-        background:rgba(33,195,84,.08);
-        border:1px solid rgba(33,195,84,.25);
-    ">
-        🟢 <b>PAYMENT SECURITY SYSTEM ONLINE</b>
-        &nbsp;&nbsp;•&nbsp;&nbsp;
-        FraudShield ACTIVE
-        &nbsp;&nbsp;•&nbsp;&nbsp;
-        PayRecover ACTIVE
-        &nbsp;&nbsp;•&nbsp;&nbsp;
-        PaymentOps ACTIVE
-    </div>
-    """,
+    '<div class="subtitle">'
+    'AI-Powered Payment Protection • FraudShield • '
+    'PayRecover AI • PaymentOps'
+    '</div>',
     unsafe_allow_html=True
 )
 
@@ -688,30 +473,16 @@ soc4.metric(
 )
 
 
-st.markdown(
-    """
-    <div class="info-panel">
+st.info("""
+🟢 LOW RISK → ALLOW
 
-    <h3>🛡️ Security Decision Protocol</h3>
+🟠 MEDIUM RISK → 2FA VERIFICATION
 
-    <span class="badge badge-green">🟢 LOW → ALLOW</span>
+🔴 HIGH RISK → HOLD + SECURITY TICKET
 
-    <span class="badge badge-orange">🟠 MEDIUM → 2FA</span>
+❌ FAILED PAYMENT → PAYRECOVER AI → SMART RETRY AI
+""")
 
-    <span class="badge badge-red">🔴 HIGH → HOLD</span>
-
-    <br><br>
-
-    ❌ Failed Payment
-    &nbsp;→&nbsp;
-    💰 PayRecover AI
-    &nbsp;→&nbsp;
-    ⏰ Smart Retry AI
-
-    </div>
-    """,
-    unsafe_allow_html=True
-)
 
 # ================================================================
 # 📜 TRANSACTION HISTORY
@@ -931,30 +702,44 @@ if analyze:
     # DECISION
     # ============================================================
 
-    # LOW < 30, MEDIUM 30-69.99, HIGH >= 70
-    if risk_score < 30:
-        risk_level = "LOW"
-        action = "ALLOW"
-        icon = "🟢"
-    elif risk_score < 70:
-        risk_level = "MEDIUM"
-        action = "2FA"
-        icon = "🟠"
-    else:
+    if risk_score >= 70:
+
         risk_level = "HIGH"
+
         action = "HOLD"
+
         icon = "🔴"
 
-    # Generate a real demo OTP only for medium-risk payments.
-    st.session_state.otp_verified = False
-    st.session_state.otp_attempts = 0
-    if risk_level == "MEDIUM":
-        st.session_state.generated_otp = str(np.random.randint(100000, 1000000))
-        st.session_state.otp_expiry = pd.Timestamp.now().to_pydatetime() + pd.Timedelta(minutes=5)
-    else:
-        st.session_state.generated_otp = None
-        st.session_state.otp_expiry = None
+    elif risk_score >= 30:
 
+        risk_level = "MEDIUM"
+
+        action = "2FA"
+
+        icon = "🟠"
+
+    else:
+
+        risk_level = "LOW"
+
+        action = "ALLOW"
+
+        icon = "🟢"
+
+
+    # ============================================================
+    # RESET SECURITY STATE FOR NEW TRANSACTION
+    # ============================================================
+
+    st.session_state.otp_verified = False
+    st.session_state.ticket_message = ""
+
+    transaction_id = (
+        "TXN-"
+        + datetime.now().strftime("%Y%m%d%H%M%S")
+        + "-"
+        + str(np.random.randint(100, 999))
+    )
 
     # ============================================================
     # SAVE RESULT
@@ -962,22 +747,19 @@ if analyze:
 
     st.session_state.last_result = {
 
-        "risk":
-            risk_score,
+        "analysis_id": transaction_id,
 
-        "level":
-            risk_level,
+        "risk": risk_score,
 
-        "action":
-            action,
+        "level": risk_level,
 
-        "amount":
-            amount,
+        "action": action,
 
-        "time":
-            datetime.now().strftime(
-                "%H:%M:%S"
-            )
+        "amount": amount,
+
+        "time": datetime.now().strftime(
+            "%H:%M:%S"
+        )
 
     }
 
@@ -1221,6 +1003,9 @@ if analyze:
 
     st.header("🔐 Security Center")
 
+    # ------------------------------------------------------------
+    # MEDIUM RISK — 2FA
+    # ------------------------------------------------------------
 
     if risk_level == "MEDIUM":
 
@@ -1228,314 +1013,181 @@ if analyze:
             "🟠 MEDIUM RISK — 2FA REQUIRED"
         )
 
-
         st.subheader(
             "🟠 Two-Factor Authentication"
         )
 
-
         st.write(
-            "Customer verification is required "
-            "before payment approval."
+            "Customer verification is required before payment approval."
         )
 
         st.info(
-            f"📲 Demo OTP: {st.session_state.generated_otp}  |  Valid for 5 minutes"
+            "🔐 Demo OTP: 123456"
         )
 
         otp = st.text_input(
-            "Enter OTP",
+            "Enter 6-digit OTP",
             type="password",
             max_chars=6,
             key="live_otp"
         )
 
-
         if st.button(
-            "🔐 VERIFY 2FA",
+            "🔐 VERIFY & APPROVE PAYMENT",
             key="verify_2fa",
+            type="primary",
             use_container_width=True
         ):
 
-            if (
-                st.session_state.generated_otp
-                and otp == st.session_state.generated_otp
-                and (
-                    st.session_state.otp_expiry is None
-                    or datetime.now() <= st.session_state.otp_expiry
-                )
-            ):
+            if otp.strip() == "123456":
 
                 st.session_state.otp_verified = True
+
+                # Update the saved transaction decision.
+                if st.session_state.last_result:
+                    st.session_state.last_result["action"] = "APPROVED"
 
                 st.success(
                     "✅ 2FA VERIFIED — PAYMENT APPROVED"
                 )
 
+                st.balloons()
+
+                st.rerun()
+
             else:
 
                 st.session_state.otp_verified = False
 
-                if (
-                    st.session_state.otp_expiry
-                    and datetime.now() > st.session_state.otp_expiry
-                ):
-                    st.error("⏰ OTP EXPIRED — PLEASE ANALYZE AGAIN")
-                else:
-                    st.session_state.otp_attempts += 1
-                    st.error("❌ INVALID OTP — PAYMENT BLOCKED")
-                    st.warning(
-                        f"Verification attempts: {st.session_state.otp_attempts}"
-                    )
-
+                st.error(
+                    "❌ INVALID OTP — PAYMENT REMAINS BLOCKED"
+                )
 
         if st.session_state.otp_verified:
 
             st.success(
-                "🟢 Customer identity verified."
+                "🟢 Customer identity verified. Payment approved."
             )
 
+    # ------------------------------------------------------------
+    # HIGH RISK — HOLD + TICKET
+    # ------------------------------------------------------------
 
     elif risk_level == "HIGH":
 
         st.error(
-            "🔴 HIGH RISK — PAYMENT UNDER REVIEW"
+            "🔴 HIGH RISK — PAYMENT ON HOLD"
         )
-
 
         st.subheader(
-            "🎫 Security Ticket"
+            "🎫 Security Operations"
         )
-
 
         st.write(
-            "This payment is on HOLD. "
-            "Create a live security ticket for review."
+            "This payment is on HOLD. Raise a security ticket "
+            "for investigation and review."
         )
 
-
-      # ============================================================
-# 🔴 HIGH RISK — HOLD + SECURITY TICKET
-# ============================================================
-
-if risk_level == "HIGH":
-
-    st.divider()
-
-    st.header("🔴 Security Action Required")
-
-    st.error(
-        "🔴 HIGH-RISK TRANSACTION — PAYMENT ON HOLD"
-    )
-
-    st.warning(
-        "PayShield AI has detected a high-risk transaction. "
-        "The payment has been placed on hold and requires "
-        "security review."
-    )
-
-    # --------------------------------------------------------
-    # HIGH RISK DETAILS
-    # --------------------------------------------------------
-
-    h1, h2, h3, h4 = st.columns(4)
-
-    h1.metric(
-        "Risk Score",
-        f"{risk_score:.2f}%"
-    )
-
-    h2.metric(
-        "Amount",
-        f"₹{amount:,.2f}"
-    )
-
-    h3.metric(
-        "Risk Level",
-        "🔴 HIGH"
-    )
-
-    h4.metric(
-        "Action",
-        "HOLD"
-    )
-
-    st.progress(
-        int(
-            min(
-                max(risk_score, 0),
-                100
-            )
+        # Do not create duplicate tickets for the same transaction.
+        existing_ticket = next(
+            (
+                ticket for ticket in st.session_state.tickets
+                if ticket.get("Transaction ID") == transaction_id
+            ),
+            None
         )
-    )
 
-    # --------------------------------------------------------
-    # SECURITY ANALYSIS
-    # --------------------------------------------------------
+        if existing_ticket:
 
-    with st.expander(
-        "🔍 View Security Analysis",
-        expanded=True
-    ):
-
-        s1, s2 = st.columns(2)
-
-        with s1:
-
-            st.write(
-                f"**Transaction ID:** "
-                f"{result['analysis_id']}"
+            st.warning(
+                f"🎫 Ticket {existing_ticket.get('Ticket ID', 'N/A')} "
+                "already exists for this transaction."
             )
 
-            st.write(
-                f"**Transaction Amount:** "
-                f"₹{amount:,.2f}"
-            )
+        else:
 
-            st.write(
-                f"**Merchant Risk:** "
-                f"{merchant_risk:.2f}"
-            )
+            if st.button(
+                "🎫 RAISE SECURITY TICKET",
+                key="raise_live_ticket",
+                type="primary",
+                use_container_width=True
+            ):
 
-            st.write(
-                f"**IP Risk:** "
-                f"{ip_risk:.2f}"
-            )
+                ticket_id = (
+                    "PS-"
+                    + datetime.now().strftime("%Y%m%d%H%M%S")
+                    + "-"
+                    + str(np.random.randint(100, 999))
+                )
 
-            st.write(
-                f"**Failed Transactions (24h):** "
-                f"{failed_24h}"
-            )
+                new_ticket = {
 
-        with s2:
+                    "Ticket ID": ticket_id,
 
-            st.write(
-                f"**Payment Channel:** "
-                f"{payment_channel}"
-            )
+                    "Transaction ID": transaction_id,
 
-            st.write(
-                f"**Device:** "
-                f"{device_type}"
-            )
-
-            st.write(
-                f"**International:** "
-                f"{international}"
-            )
-
-            st.write(
-                f"**Geo Distance:** "
-                f"{geo_distance}"
-            )
-
-            st.write(
-                f"**Post-Auth Risk:** "
-                f"{post_auth_risk:.2f}"
-            )
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # RAISE TICKET
-    # --------------------------------------------------------
-
-    if not any(
-        ticket.get("Transaction ID")
-        == result["analysis_id"]
-        for ticket in st.session_state.tickets
-    ):
-
-        if st.button(
-            "🎫 RAISE SECURITY TICKET",
-            type="primary",
-            use_container_width=True,
-            key=f"raise_ticket_{result['analysis_id']}"
-        ):
-
-            ticket_id = (
-                "SEC-"
-                + datetime.now().strftime("%Y%m%d%H%M%S")
-                + "-"
-                + str(random.randint(100, 999))
-            )
-
-            new_ticket = {
-
-                "Ticket ID":
-                    ticket_id,
-
-                "Transaction ID":
-                    result["analysis_id"],
-
-                "Status":
-                    "🔴 UNDER REVIEW",
-
-                "Risk Level":
-                    "🔴 HIGH",
-
-                "Risk Score":
-                    f"{risk_score:.2f}%",
-
-                "Amount":
-                    f"₹{amount:,.2f}",
-
-                "Payment Channel":
-                    payment_channel,
-
-                "Device":
-                    device_type,
-
-                "Merchant Risk":
-                    f"{merchant_risk:.2f}",
-
-                "IP Risk":
-                    f"{ip_risk:.2f}",
-
-                "Failed Transactions":
-                    failed_24h,
-
-                "International":
-                    international,
-
-                "Reason":
-                    "High fraud risk detected by FraudShield AI",
-
-                "Created":
-                    datetime.now().strftime(
+                    "Created": datetime.now().strftime(
                         "%Y-%m-%d %H:%M:%S"
+                    ),
+
+                    "Amount": f"₹{amount:,.2f}",
+
+                    "Risk Score": f"{risk_score:.2f}%",
+
+                    "Risk Level": "🔴 HIGH",
+
+                    "Action": "HOLD",
+
+                    "Status": "🔴 UNDER REVIEW",
+
+                    "Payment Channel": payment_channel,
+
+                    "Device": device_type,
+
+                    "IP Risk": f"{ip_risk:.2f}",
+
+                    "Merchant Risk": f"{merchant_risk:.2f}",
+
+                    "Failed Transactions": failed_24h,
+
+                    "International": international,
+
+                    "Reason": (
+                        "High fraud risk detected by FraudShield AI. "
+                        "Payment placed on hold for security review."
                     )
-            }
+                }
 
-            st.session_state.tickets.append(
-                new_ticket
+                st.session_state.tickets.append(
+                    new_ticket
+                )
+
+                st.session_state.ticket_message = (
+                    f"🎫 Ticket {ticket_id} created successfully."
+                )
+
+                st.rerun()
+
+        if st.session_state.ticket_message:
+
+            st.success(
+                st.session_state.ticket_message
             )
 
-            st.session_state.ticket_message = (
-                f"🎫 Security ticket {ticket_id} "
-                f"created successfully."
-            )
-
-            st.session_state.ticket_details = (
-                new_ticket
-            )
-
-            st.rerun()
+    # ------------------------------------------------------------
+    # LOW RISK — ALLOW
+    # ------------------------------------------------------------
 
     else:
 
         st.success(
-            "🎫 Security ticket has already been "
-            "created for this transaction."
-        )  
+            "🟢 SECURITY CHECK PASSED — PAYMENT ALLOWED"
+        )
 
+        st.write(
+            "No additional customer verification is required."
+        )
 
-            
-
-              
-
-
- 
 
     # ============================================================
     # 📋 TRANSACTION SUMMARY
@@ -1578,9 +1230,9 @@ if risk_level == "HIGH":
             action,
 
             (
-                "REQUIRED"
-                if risk_level == "MEDIUM"
-                else "NO"
+                "✅ VERIFIED"
+                if st.session_state.otp_verified
+                else ("🔐 REQUIRED" if risk_level == "MEDIUM" else "NO")
             ),
 
             "Available after payment failure",
@@ -1682,68 +1334,35 @@ st.divider()
 
 st.header("🎫 Live Security Tickets")
 
-# Show success message
-if st.session_state.get("ticket_message"):
+if st.session_state.ticket_message:
 
     st.success(
         st.session_state.ticket_message
     )
 
-    st.session_state.ticket_message = None
-
-
-# ================================================================
-# DISPLAY EXISTING TICKETS
-# ================================================================
-
-if st.session_state.get("tickets"):
+if st.session_state.tickets:
 
     st.subheader(
         f"📊 {len(st.session_state.tickets)} Security Ticket(s)"
     )
 
-    for index, ticket in enumerate(
-        st.session_state.tickets
-    ):
+    for index, ticket in enumerate(st.session_state.tickets):
 
         status = ticket.get(
             "Status",
             "🔴 UNDER REVIEW"
         )
 
-        # --------------------------------------------------------
-        # TICKET CARD
-        # --------------------------------------------------------
-
         if status == "🔴 UNDER REVIEW":
 
             st.markdown(
                 f"""
-                <div class="ticket-card">
-
-                    <h3>
-                    🎫 {ticket.get("Ticket ID", "N/A")}
-                    </h3>
-
-                    <p>
-                    <b>Status:</b> 🔴 UNDER REVIEW
-                    </p>
-
-                    <p>
-                    <b>Transaction:</b>
-                    {ticket.get("Transaction ID", "N/A")}
-                    </p>
-
-                    <p>
-                    <b>Risk Score:</b>
-                    {ticket.get("Risk Score", "N/A")}
-                    </p>
-
-                    <p>
-                    <b>Amount:</b>
-                    {ticket.get("Amount", "N/A")}
-                    </p>
-
+                <div class="card red-card">
+                    <h3>🎫 {ticket.get('Ticket ID', 'N/A')}</h3>
+                    <p><b>Status:</b> 🔴 UNDER REVIEW</p>
+                    <p><b>Transaction:</b> {ticket.get('Transaction ID', 'N/A')}</p>
+                    <p><b>Risk:</b> 🔴 HIGH — {ticket.get('Risk Score', 'N/A')}</p>
+                    <p><b>Amount:</b> {ticket.get('Amount', 'N/A')}</p>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -1753,110 +1372,43 @@ if st.session_state.get("tickets"):
 
             st.markdown(
                 f"""
-                <div class="success-ticket">
-
-                    <h3>
-                    🎫 {ticket.get("Ticket ID", "N/A")}
-                    </h3>
-
-                    <p>
-                    <b>Status:</b> 🟢 RESOLVED
-                    </p>
-
-                    <p>
-                    <b>Transaction:</b>
-                    {ticket.get("Transaction ID", "N/A")}
-                    </p>
-
+                <div class="card green-card">
+                    <h3>🎫 {ticket.get('Ticket ID', 'N/A')}</h3>
+                    <p><b>Status:</b> 🟢 RESOLVED</p>
+                    <p><b>Transaction:</b> {ticket.get('Transaction ID', 'N/A')}</p>
+                    <p><b>Amount:</b> {ticket.get('Amount', 'N/A')}</p>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-
-        # ========================================================
-        # COMPLETE DETAILS
-        # ========================================================
-
         with st.expander(
-            "🔍 View Complete Ticket Details"
+            "🔍 View Complete Ticket Details",
+            expanded=False
         ):
 
-            col1, col2 = st.columns(2)
+            d1, d2 = st.columns(2)
 
-            with col1:
+            with d1:
+                st.write(f"**🎫 Ticket ID:** {ticket.get('Ticket ID', 'N/A')}")
+                st.write(f"**💳 Transaction ID:** {ticket.get('Transaction ID', 'N/A')}")
+                st.write(f"**💰 Amount:** {ticket.get('Amount', 'N/A')}")
+                st.write(f"**📊 Risk Score:** {ticket.get('Risk Score', 'N/A')}")
+                st.write(f"**🚦 Risk Level:** {ticket.get('Risk Level', 'N/A')}")
+                st.write(f"**⚡ Action:** {ticket.get('Action', 'N/A')}")
+                st.write(f"**📡 Payment Channel:** {ticket.get('Payment Channel', 'N/A')}")
 
-                st.write(
-                    f"**🎫 Ticket ID:** "
-                    f"{ticket.get('Ticket ID', 'N/A')}"
-                )
-
-                st.write(
-                    f"**💳 Transaction ID:** "
-                    f"{ticket.get('Transaction ID', 'N/A')}"
-                )
-
-                st.write(
-                    f"**💰 Amount:** "
-                    f"{ticket.get('Amount', 'N/A')}"
-                )
-
-                st.write(
-                    f"**📊 Risk Score:** "
-                    f"{ticket.get('Risk Score', 'N/A')}"
-                )
-
-                st.write(
-                    f"**🚦 Risk Level:** "
-                    f"{ticket.get('Risk Level', 'N/A')}"
-                )
-
-                st.write(
-                    f"**📡 Payment Channel:** "
-                    f"{ticket.get('Payment Channel', 'N/A')}"
-                )
-
-            with col2:
-
-                st.write(
-                    f"**📱 Device:** "
-                    f"{ticket.get('Device', 'N/A')}"
-                )
-
-                st.write(
-                    f"**🌐 IP Risk:** "
-                    f"{ticket.get('IP Risk', 'N/A')}"
-                )
-
-                st.write(
-                    f"**🏪 Merchant Risk:** "
-                    f"{ticket.get('Merchant Risk', 'N/A')}"
-                )
-
-                st.write(
-                    f"**❌ Failed Transactions:** "
-                    f"{ticket.get('Failed Transactions', 'N/A')}"
-                )
-
-                st.write(
-                    f"**🌍 International:** "
-                    f"{ticket.get('International', 'N/A')}"
-                )
-
-                st.write(
-                    f"**🕐 Created:** "
-                    f"{ticket.get('Created', 'N/A')}"
-                )
+            with d2:
+                st.write(f"**📱 Device:** {ticket.get('Device', 'N/A')}")
+                st.write(f"**🌐 IP Risk:** {ticket.get('IP Risk', 'N/A')}")
+                st.write(f"**🏪 Merchant Risk:** {ticket.get('Merchant Risk', 'N/A')}")
+                st.write(f"**❌ Failed Transactions:** {ticket.get('Failed Transactions', 'N/A')}")
+                st.write(f"**🌍 International:** {ticket.get('International', 'N/A')}")
+                st.write(f"**🕐 Created:** {ticket.get('Created', 'N/A')}")
 
             st.info(
-                f"🔎 Reason: "
-                f"{ticket.get('Reason', 'N/A')}"
+                f"🔎 **Reason for Review:** {ticket.get('Reason', 'N/A')}"
             )
-
-
-        # ========================================================
-        # RESOLVE TICKET
-        # ========================================================
 
         if status == "🔴 UNDER REVIEW":
 
@@ -1867,50 +1419,28 @@ if st.session_state.get("tickets"):
                 use_container_width=True
             ):
 
-                st.session_state.tickets[
-                    index
-                ]["Status"] = "🟢 RESOLVED"
+                st.session_state.tickets[index][
+                    "Status"
+                ] = "🟢 RESOLVED"
 
                 st.session_state.ticket_message = (
-                    "✅ Ticket "
-                    + str(
-                        ticket.get(
-                            "Ticket ID",
-                            "N/A"
-                        )
-                    )
-                    + " resolved successfully."
+                    f"✅ Ticket {ticket.get('Ticket ID', 'N/A')} "
+                    "resolved successfully."
                 )
 
                 st.rerun()
 
         else:
 
-            st.success(
-                "🟢 TICKET RESOLVED"
-            )
-
+            st.success("🟢 TICKET RESOLVED")
 
 else:
 
     st.info(
-        "🟢 No security tickets yet. "
-        "High-risk transactions will appear here "
-        "after a security ticket is raised."
+        "🟢 No security tickets yet. A ticket will appear here "
+        "when a high-risk transaction is placed on hold."
     )
 
-
-# ------------------------------------------------
-# EMPTY STATE
-# ------------------------------------------------
-
-else:
-
-    st.info(
-        "🟢 No active security tickets. "
-        "High-risk transactions will appear here "
-        "when a security ticket is raised."
-    )
 
 # ================================================================
 # 💰 PAYRECOVER AI
@@ -2362,33 +1892,45 @@ op4.metric(
 
 st.markdown("""
 <div class="card blue-card">
-<h3>🤖 Intelligent Payment Operations</h3>
-<p><b>PaymentOps AI</b> is the central orchestration layer of PayShield AI. It connects fraud detection, customer authentication, security operations, payment recovery, and intelligent retry into one unified workflow.</p>
-<p>PaymentOps monitors the payment journey and determines the next action from the AI outputs.</p>
-<p>🛡️ <b>FraudShield AI</b> → analyzes transaction, merchant, device, IP and velocity signals.</p>
-<p>🔐 <b>Security Decision</b> → LOW allows payment, MEDIUM requests 2FA, HIGH places payment on hold.</p>
-<p>🎫 <b>Security Operations</b> → high-risk payments can create an under-review ticket.</p>
-<p>💰 <b>PayRecover AI</b> → estimates the probability of recovering a failed payment.</p>
-<p>⏰ <b>Smart Retry AI</b> → compares retry intervals and recommends the highest predicted success time.</p>
-<p>🎯 <b>Objective:</b> balance payment security with successful payment completion and recovery.</p>
+
+<h3>🤖 PaymentOps Decision Flow</h3>
+
+Payment received
+
+↓
+
+🛡️ <b>FraudShield AI</b>
+
+↓
+
+🚦 <b>Risk Assessment</b>
+
+↓
+
+🟢 LOW → ALLOW
+
+🟠 MEDIUM → 2FA
+
+🔴 HIGH → HOLD + SECURITY TICKET
+
+↓
+
+❌ Failed Payment
+
+↓
+
+💰 <b>PayRecover AI</b>
+
+↓
+
+⏰ <b>Smart Retry AI</b>
+
+↓
+
+⭐ Recommended Retry Time
+
 </div>
 """, unsafe_allow_html=True)
-
-st.subheader("🔄 PaymentOps Decision Flow")
-
-flow = [
-    "🟦 PAYMENT RECEIVED",
-    "🛡️ FRAUDSHIELD AI — Transaction risk analysis",
-    "🚦 RISK ASSESSMENT — Fraud probability + behavioural signals",
-    "🟢 LOW RISK → ALLOW PAYMENT",
-    "🟠 MEDIUM RISK → 2FA VERIFICATION",
-    "🔴 HIGH RISK → HOLD + SECURITY TICKET",
-    "❌ PAYMENT FAILURE → PAYRECOVER AI",
-    "📈 RECOVERY PROBABILITY → SMART RETRY AI",
-    "⭐ RECOMMENDED RETRY TIME"
-]
-for step in flow:
-    st.markdown(f'<div class="timeline">{step}</div>', unsafe_allow_html=True)
 
 
 # ================================================================
@@ -2404,25 +1946,49 @@ st.header(
 
 st.markdown("""
 <div class="card">
+
 <h3>LIVE PAYMENT DECISION PIPELINE</h3>
+
+🟦 PAYMENT RECEIVED
+
+↓
+
+🛡️ FRAUDSHIELD AI
+
+↓
+
+📊 RISK SCORE
+
+↓
+
+🟢 LOW → <b>ALLOW</b>
+
+🟠 MEDIUM → <b>2FA</b>
+
+🔴 HIGH → <b>HOLD + SECURITY TICKET</b>
+
+↓
+
+❌ IF PAYMENT FAILS
+
+↓
+
+💰 PAYRECOVER AI
+
+↓
+
+📈 RECOVERY PROBABILITY
+
+↓
+
+⏰ SMART RETRY AI
+
+↓
+
+⭐ OPTIMAL RETRY TIME
+
 </div>
 """, unsafe_allow_html=True)
-
-engine_steps = [
-    "🟦 PAYMENT RECEIVED",
-    "🛡️ FRAUDSHIELD AI",
-    "📊 RISK SCORE",
-    "🟢 LOW → ALLOW",
-    "🟠 MEDIUM → 2FA",
-    "🔴 HIGH → HOLD + SECURITY TICKET",
-    "❌ IF PAYMENT FAILS",
-    "💰 PAYRECOVER AI",
-    "📈 RECOVERY PROBABILITY",
-    "⏰ SMART RETRY AI",
-    "⭐ OPTIMAL RETRY TIME"
-]
-for step in engine_steps:
-    st.markdown(f'<div class="timeline">{step}</div>', unsafe_allow_html=True)
 
 
 # ================================================================
