@@ -1911,79 +1911,380 @@ if failed_payment:
 # ============================================================
 # PAYMENTOPS AI
 # ============================================================
+# ============================================================
+# PAYMENTOPS AI
+# ============================================================
 
 st.divider()
 
 st.header("🤖 PaymentOps AI")
 
-op1, op2, op3, op4 = st.columns(4)
-
-op1.metric(
-    "🛡️ FraudShield",
-    "ACTIVE"
+st.caption(
+    "Intelligent orchestration layer for the complete payment lifecycle"
 )
 
-op2.metric(
-    "💰 PayRecover",
-    "ACTIVE"
-)
-
-op3.metric(
-    "⏰ Smart Retry",
-    "ACTIVE"
-)
-
-op4.metric(
-    "🛡️ PaymentOps",
-    "ACTIVE"
-)
-
+# ============================================================
+# PAYMENTOPS DESCRIPTION
+# ============================================================
 
 st.markdown(
     """
-<div class="card blue-card">
+    <div class="card blue-card">
 
-<h3>🤖 PaymentOps Decision Flow</h3>
+        <h2>🤖 Intelligent Payment Operations</h2>
 
-Payment received
+        <p>
+        <b>PaymentOps AI</b> is the central orchestration layer
+        of PayShield AI. It connects fraud detection, customer
+        authentication, security operations, payment recovery,
+        and intelligent retry into one unified payment workflow.
+        </p>
 
-↓
+        <p>
+        PaymentOps continuously monitors the payment journey and
+        determines what action should happen next based on the
+        output of the AI systems.
+        </p>
 
-🛡️ <b>FraudShield AI</b>
+        <h3>🔄 How PaymentOps Works</h3>
 
-↓
+        <p>
+        🛡️ <b>1. FraudShield AI</b><br>
+        Analyzes transaction behaviour, merchant risk, device
+        signals, IP risk and transaction velocity to calculate
+        the transaction risk score.
+        </p>
 
-🚦 <b>Risk Assessment</b>
+        <p>
+        🔐 <b>2. Security Decision</b><br>
+        Based on the risk level, PaymentOps determines whether
+        the transaction should be allowed, sent for 2FA
+        verification, or placed on hold.
+        </p>
 
-↓
+        <p>
+        🎫 <b>3. Security Operations</b><br>
+        High-risk transactions can be placed under review and
+        a security ticket can be raised for investigation.
+        </p>
 
-🟢 LOW → ALLOW
+        <p>
+        💰 <b>4. PayRecover AI</b><br>
+        If a payment fails, PayRecover AI analyzes the failure,
+        customer behaviour and payment method to estimate the
+        probability of successful recovery.
+        </p>
 
-🟠 MEDIUM → 2FA
+        <p>
+        ⏰ <b>5. Smart Retry AI</b><br>
+        Smart Retry evaluates different retry intervals and
+        recommends the time with the highest predicted payment
+        success probability.
+        </p>
 
-🔴 HIGH → HOLD + SECURITY TICKET
+        <h3>🎯 PaymentOps Objective</h3>
 
-↓
+        <p>
+        PaymentOps aims to balance <b>security and payment
+        success</b> — preventing fraudulent transactions while
+        reducing unnecessary declines and maximizing recovery
+        of failed payments.
+        </p>
 
-❌ Failed Payment
-
-↓
-
-💰 <b>PayRecover AI</b>
-
-↓
-
-⏰ <b>Smart Retry AI</b>
-
-↓
-
-⭐ Recommended Retry Time
-
-</div>
-""",
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
+
+# ============================================================
+# LIVE SYSTEM STATUS
+# ============================================================
+
+st.subheader("📡 PaymentOps System Status")
+
+op1, op2, op3, op4 = st.columns(4)
+
+with op1:
+    st.metric(
+        "🛡️ FraudShield",
+        "ACTIVE"
+    )
+
+with op2:
+    st.metric(
+        "💰 PayRecover",
+        "ACTIVE"
+    )
+
+with op3:
+    st.metric(
+        "⏰ Smart Retry",
+        "ACTIVE"
+    )
+
+with op4:
+    st.metric(
+        "🤖 PaymentOps",
+        "ACTIVE"
+    )
+
+
+# ============================================================
+# LIVE PAYMENTOPS STATUS
+# ============================================================
+
+if st.session_state.last_result:
+
+    ops_result = st.session_state.last_result
+
+    ops_risk = float(
+        ops_result["risk"]
+    )
+
+    ops_level = ops_result["level"]
+
+    ops_action = ops_result["action"]
+
+    if ops_level == "LOW":
+
+        ops_icon = "🟢"
+        ops_status = "PAYMENT ALLOWED"
+        ops_message = (
+            "Transaction risk is low. PaymentOps has "
+            "authorized the payment."
+        )
+
+    elif ops_level == "MEDIUM":
+
+        ops_icon = "🟠"
+        ops_status = "2FA VERIFICATION"
+        ops_message = (
+            "Additional customer verification is required "
+            "before payment approval."
+        )
+
+    else:
+
+        ops_icon = "🔴"
+        ops_status = "PAYMENT ON HOLD"
+        ops_message = (
+            "Transaction requires security review."
+        )
+
+
+    st.subheader("⚡ Live PaymentOps Decision")
+
+    st.markdown(
+        f"""
+        <div class="card">
+
+            <h2>
+            {ops_icon} {ops_level}
+            </h2>
+
+            <p>
+            <b>Transaction ID:</b>
+            {ops_result["analysis_id"]}
+            </p>
+
+            <p>
+            <b>Risk Score:</b>
+            {ops_risk:.2f}%
+            </p>
+
+            <p>
+            <b>Current Action:</b>
+            {ops_action}
+            </p>
+
+            <p>
+            <b>PaymentOps Status:</b>
+            {ops_status}
+            </p>
+
+            <p>
+            {ops_message}
+            </p>
+
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+else:
+
+    st.info(
+        "💡 Analyze a payment to activate the live "
+        "PaymentOps decision monitor."
+    )
+
+
+# ============================================================
+# PAYMENTOPS DECISION FLOW
+# ============================================================
+
+st.subheader("🔄 PaymentOps Decision Flow")
+
+st.markdown(
+    """
+    <div class="card blue-card">
+
+        <h3>END-TO-END PAYMENT ORCHESTRATION</h3>
+
+        <div class="timeline">
+        🟦 <b>PAYMENT RECEIVED</b>
+        </div>
+
+        <div class="timeline">
+        🛡️ <b>FRAUDSHIELD AI</b><br>
+        Transaction risk analysis
+        </div>
+
+        <div class="timeline">
+        🚦 <b>RISK ASSESSMENT</b><br>
+        Fraud probability + behavioural signals
+        </div>
+
+        <div class="timeline">
+        🟢 <b>LOW RISK → ALLOW PAYMENT</b>
+        </div>
+
+        <div class="timeline">
+        🟠 <b>MEDIUM RISK → 2FA VERIFICATION</b>
+        </div>
+
+        <div class="timeline">
+        🔴 <b>HIGH RISK → HOLD + SECURITY TICKET</b>
+        </div>
+
+        <div class="timeline">
+        ❌ <b>PAYMENT FAILURE</b>
+        </div>
+
+        <div class="timeline">
+        💰 <b>PAYRECOVER AI</b><br>
+        Recovery probability analysis
+        </div>
+
+        <div class="timeline">
+        📈 <b>RECOVERY PROBABILITY</b>
+        </div>
+
+        <div class="timeline">
+        ⏰ <b>SMART RETRY AI</b><br>
+        Retry timing optimization
+        </div>
+
+        <div class="timeline">
+        ⭐ <b>RECOMMENDED RETRY TIME</b>
+        </div>
+
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+
+# ============================================================
+# LIVE RECOVERY INTEGRATION
+# ============================================================
+
+if st.session_state.recovery_result is not None:
+
+    st.subheader("💰 PaymentOps Recovery Intelligence")
+
+    recovery_probability = float(
+        st.session_state.recovery_result
+    )
+
+    rec1, rec2, rec3 = st.columns(3)
+
+    rec1.metric(
+        "Recovery Probability",
+        f"{recovery_probability:.2f}%"
+    )
+
+    if st.session_state.retry_result:
+
+        best_time = st.session_state.retry_result[
+            "best_time"
+        ]
+
+        best_probability = st.session_state.retry_result[
+            "best_probability"
+        ]
+
+        rec2.metric(
+            "Recommended Retry",
+            f"{best_time} min"
+        )
+
+        rec3.metric(
+            "Retry Success",
+            f"{best_probability:.2f}%"
+        )
+
+        st.success(
+            f"⭐ PaymentOps recommendation: Retry after "
+            f"{best_time} minutes with an estimated "
+            f"{best_probability:.2f}% success probability."
+        )
+
+    else:
+
+        rec2.metric(
+            "Recommended Retry",
+            "Calculating"
+        )
+
+        rec3.metric(
+            "Retry Success",
+            "Calculating"
+        )
+
+
+# ============================================================
+# PAYMENTOPS SUMMARY
+# ============================================================
+
+st.subheader("📋 PaymentOps Summary")
+
+summary_data = {
+    "Component": [
+        "FraudShield AI",
+        "Security System",
+        "Payment Recovery",
+        "Smart Retry",
+        "PaymentOps"
+    ],
+
+    "Function": [
+        "Fraud & risk detection",
+        "2FA / Hold / Security Ticket",
+        "Failed payment recovery",
+        "Retry optimization",
+        "Central orchestration"
+    ],
+
+    "Status": [
+        "🟢 ACTIVE",
+        "🟢 ACTIVE",
+        "🟢 ACTIVE",
+        "🟢 ACTIVE",
+        "🟢 ACTIVE"
+    ]
+}
+
+paymentops_summary = pd.DataFrame(
+    summary_data
+)
+
+st.dataframe(
+    paymentops_summary,
+    use_container_width=True,
+    hide_index=True
+)
 
 # ============================================================
 # FINAL DECISION ENGINE
