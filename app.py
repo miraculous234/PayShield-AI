@@ -9,7 +9,7 @@ import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# Flexible imports to handle different LangChain package versions
+# Flexible imports for LangChain compatibility
 try:
     from langchain_groq import ChatGroq
 except ImportError:
@@ -22,8 +22,9 @@ except ImportError:
         from langchain.prompts import PromptTemplate
     except ImportError:
         PromptTemplate = None
+
 # ============================================================
-# PAGE CONFIG & STYLES
+# PAGE CONFIG
 # ============================================================
 
 st.set_page_config(
@@ -34,14 +35,19 @@ st.set_page_config(
 )
 
 # ============================================================
-# USER AUTHENTICATION SETUP
+# USER AUTHENTICATION SETUP (Fixed for streamlit-authenticator)
 # ============================================================
 
 names = ["Merchant Admin", "Security Analyst"]
 usernames = ["merchant_admin", "analyst"]
 passwords = ["admin123", "shield123"]
 
-hashed_passwords = stauth.Hasher(passwords).generate()
+# Modern streamlit-authenticator hashing syntax
+try:
+    hashed_passwords = stauth.Hasher.hash_passwords({"passwords": passwords})
+except AttributeError:
+    # Fallback for alternative v0.3+ API syntaxes
+    hashed_passwords = [stauth.Hasher.hash(p) for p in passwords]
 
 credentials = {
     "usernames": {
@@ -57,12 +63,13 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-name, authentication_status, username = authenticator.login("PayShield AI Enterprise Access", "main")
+# Render login component
+authenticator.login("PayShield AI Enterprise Access", "main")
 
-if authentication_status == False:
+if st.session_state.get("authentication_status") == False:
     st.error("Username/password is incorrect")
     st.stop()
-elif authentication_status == None:
+elif st.session_state.get("authentication_status") is None:
     st.warning("Please enter your merchant credentials to access the PayShield AI Portal")
     st.stop()
 
@@ -70,7 +77,7 @@ elif authentication_status == None:
 # AUTHENTICATED APP CONTENT
 # ============================================================
 
-st.sidebar.write(f"Logged in as: **{name}**")
+st.sidebar.write(f"Logged in as: **{st.session_state.get('name')}**")
 authenticator.logout("Logout", "sidebar")
 
 # ============================================================
@@ -189,7 +196,6 @@ st.markdown(
 
 st.divider()
 
-# ROI KPI Dashboard Metrics
 col1, col2, col3, col4 = st.columns(4)
 with col1:
     st.metric("🛡️ Total Fraud Blocked", f"₹{st.session_state.fraud_blocked_val:,.2f}", "+₹15,200 today")
@@ -205,10 +211,11 @@ st.divider()
 # ============================================================
 # GROQ PAYMENTOPS AGENT FUNCTION
 # ============================================================
+
 def generate_agentic_ticket(payload_data, risk_score):
     try:
         api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-        if not api_key:
+        if not api_key or ChatGroq is None or PromptTemplate is None:
             return (
                 "• **Threat Classification**: High-Risk Velocity & Deviation Anomaly\n"
                 "• **Behavioral Anomaly**: Transaction amount deviated significantly from user mean.\n"
