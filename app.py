@@ -1105,128 +1105,104 @@ if analyze:
 
         st.stop()
 
+if analyze:
 
-    
-# --------------------------------------------------------
-# DECISION
-# --------------------------------------------------------
+    now = datetime.now()
+    hour = now.hour
+    day = now.weekday()
 
-# Actual AI model score
-ai_risk_score = fraud_probability * 100
+    # --------------------------------------------------------
+    # DERIVED FEATURES
+    # --------------------------------------------------------
+    international_value = int(international == "Yes")
+    amount_to_monthly_spend = amount / max(monthly_spend, 1)
+    failure_rate_24h = failed_24h / max(txn_24h, 1)
+    velocity_ratio = txn_1h / max(txn_24h, 1)
+    is_weekend = int(day >= 5)
+    is_night = int(hour < 6 or hour >= 22)
 
-if demo_mode == "🟢 LOW — ALLOW":
+    # ... (fraud_input, reindex, fraud_probability) ...
 
-    risk_score = 20.0
-    risk_level = "LOW"
-    action = "ALLOW"
-    icon = "🟢"
+    # --------------------------------------------------------
+    # DECISION
+    # --------------------------------------------------------
+    ai_risk_score = fraud_probability * 100
 
-elif demo_mode == "🟠 MEDIUM — 2FA":
-
-    risk_score = 55.0
-    risk_level = "MEDIUM"
-    action = "2FA"
-    icon = "🟠"
-
-elif demo_mode == "🔴 HIGH — HOLD + TICKET":
-
-    risk_score = 85.0
-    risk_level = "HIGH"
-    action = "HOLD"
-    icon = "🔴"
-
-else:
-
-    # ACTUAL FRAUDSHIELD AI RESULT
-
-    risk_score = ai_risk_score
-
-    if risk_score >= 70:
-
-        risk_level = "HIGH"
-        action = "HOLD"
-        icon = "🔴"
-
-    elif risk_score >= 40:
-
-        risk_level = "MEDIUM"
-        action = "2FA"
-        icon = "🟠"
-
-    else:
-
+    if demo_mode == "🟢 LOW — ALLOW":
+        risk_score = 20.0
         risk_level = "LOW"
         action = "ALLOW"
         icon = "🟢"
 
+    elif demo_mode == "🟠 MEDIUM — 2FA":
+        risk_score = 55.0
+        risk_level = "MEDIUM"
+        action = "2FA"
+        icon = "🟠"
 
-# --------------------------------------------------------
-# RESET SECURITY + RECOVERY ACTIONS
-# --------------------------------------------------------
+    elif demo_mode == "🔴 HIGH — HOLD + TICKET":
+        risk_score = 85.0
+        risk_level = "HIGH"
+        action = "HOLD"
+        icon = "🔴"
 
-st.session_state.generated_otp = None
-st.session_state.otp_expiry = None
-st.session_state.otp_verified = False
-st.session_state.otp_attempts = 0
-st.session_state.ticket_details = None
+    else:
+        risk_score = ai_risk_score
+        if risk_score >= 70:
+            risk_level = "HIGH"
+            action = "HOLD"
+            icon = "🔴"
+        elif risk_score >= 40:
+            risk_level = "MEDIUM"
+            action = "2FA"
+            icon = "🟠"
+        else:
+            risk_level = "LOW"
+            action = "ALLOW"
+            icon = "🟢"
 
-st.session_state.scheduled_retry = None
-st.session_state.method_changed = False
-st.session_state.pay_later_selected = False
+    # --------------------------------------------------------
+    # RESET SECURITY + RECOVERY ACTIONS
+    # --------------------------------------------------------
+    st.session_state.generated_otp = None
+    st.session_state.otp_expiry = None
+    st.session_state.otp_verified = False
+    st.session_state.otp_attempts = 0
+    st.session_state.ticket_details = None
 
-st.session_state.recovery_result = None
-st.session_state.retry_result = None
+    st.session_state.scheduled_retry = None
+    st.session_state.method_changed = False
+    st.session_state.pay_later_selected = False
 
+    st.session_state.recovery_result = None
+    st.session_state.retry_result = None
 
-# --------------------------------------------------------
-# SAVE RESULT
-# --------------------------------------------------------
+    # --------------------------------------------------------
+    # SAVE RESULT
+    # --------------------------------------------------------
+    analysis_id = (
+        "TXN-" + now.strftime("%Y%m%d%H%M%S") + "-" + str(random.randint(100, 999))
+    )
 
-analysis_id = (
-    "TXN-" +
-    now.strftime("%Y%m%d%H%M%S") +
-    "-" +
-    str(random.randint(100, 999))
-)
+    result = {
+        "analysis_id": analysis_id,
+        "risk": risk_score,
+        "level": risk_level,
+        "action": action,
+        "amount": amount,
+        "merchant_risk": merchant_risk,
+        "ip_risk": ip_risk,
+        "failed_24h": failed_24h,
+        "amount_to_monthly_spend": amount_to_monthly_spend,
+        "failure_rate_24h": failure_rate_24h,
+        "velocity_ratio": velocity_ratio,
+        "time": now.strftime("%H:%M:%S"),
+        "datetime": now.strftime("%Y-%m-%d %H:%M:%S")
+    }
 
-result = {
+    st.session_state.last_result = result
+    
 
-    "analysis_id": analysis_id,
-
-    "risk": risk_score,
-
-    "level": risk_level,
-
-    "action": action,
-
-    "amount": amount,
-
-    "merchant_risk": merchant_risk,
-
-    "ip_risk": ip_risk,
-
-    "failed_24h": failed_24h,
-
-    "amount_to_monthly_spend":
-        amount_to_monthly_spend,
-
-    "failure_rate_24h":
-        failure_rate_24h,
-
-    "velocity_ratio":
-        velocity_ratio,
-
-    "time":
-        now.strftime("%H:%M:%S"),
-
-    "datetime":
-        now.strftime("%Y-%m-%d %H:%M:%S")
-
-}
-
-st.session_state.last_result = result
-   
-   
 
 # ============================================================
 # DISPLAY CURRENT RESULT
