@@ -2,8 +2,9 @@ streamlit
 joblib
 numpy
 pandas
+scikit-learn
 langchain
 langchain-core
 langchain-groq
-streamlit-authenticator
+streamlit-authenticator==0.2.3
 bcrypt
