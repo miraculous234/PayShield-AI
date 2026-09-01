@@ -1314,91 +1314,228 @@ if analyze:
         )
 
 
-        # ========================================================
-        # LIVE TICKET FUNCTION
-        # ========================================================
+      # ============================================================
+# 🔴 HIGH RISK — HOLD + SECURITY TICKET
+# ============================================================
+
+if risk_level == "HIGH":
+
+    st.divider()
+
+    st.header("🔴 Security Action Required")
+
+    st.error(
+        "🔴 HIGH-RISK TRANSACTION — PAYMENT ON HOLD"
+    )
+
+    st.warning(
+        "PayShield AI has detected a high-risk transaction. "
+        "The payment has been placed on hold and requires "
+        "security review."
+    )
+
+    # --------------------------------------------------------
+    # HIGH RISK DETAILS
+    # --------------------------------------------------------
+
+    h1, h2, h3, h4 = st.columns(4)
+
+    h1.metric(
+        "Risk Score",
+        f"{risk_score:.2f}%"
+    )
+
+    h2.metric(
+        "Amount",
+        f"₹{amount:,.2f}"
+    )
+
+    h3.metric(
+        "Risk Level",
+        "🔴 HIGH"
+    )
+
+    h4.metric(
+        "Action",
+        "HOLD"
+    )
+
+    st.progress(
+        int(
+            min(
+                max(risk_score, 0),
+                100
+            )
+        )
+    )
+
+    # --------------------------------------------------------
+    # SECURITY ANALYSIS
+    # --------------------------------------------------------
+
+    with st.expander(
+        "🔍 View Security Analysis",
+        expanded=True
+    ):
+
+        s1, s2 = st.columns(2)
+
+        with s1:
+
+            st.write(
+                f"**Transaction ID:** "
+                f"{result['analysis_id']}"
+            )
+
+            st.write(
+                f"**Transaction Amount:** "
+                f"₹{amount:,.2f}"
+            )
+
+            st.write(
+                f"**Merchant Risk:** "
+                f"{merchant_risk:.2f}"
+            )
+
+            st.write(
+                f"**IP Risk:** "
+                f"{ip_risk:.2f}"
+            )
+
+            st.write(
+                f"**Failed Transactions (24h):** "
+                f"{failed_24h}"
+            )
+
+        with s2:
+
+            st.write(
+                f"**Payment Channel:** "
+                f"{payment_channel}"
+            )
+
+            st.write(
+                f"**Device:** "
+                f"{device_type}"
+            )
+
+            st.write(
+                f"**International:** "
+                f"{international}"
+            )
+
+            st.write(
+                f"**Geo Distance:** "
+                f"{geo_distance}"
+            )
+
+            st.write(
+                f"**Post-Auth Risk:** "
+                f"{post_auth_risk:.2f}"
+            )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # RAISE TICKET
+    # --------------------------------------------------------
+
+    if not any(
+        ticket.get("Transaction ID")
+        == result["analysis_id"]
+        for ticket in st.session_state.tickets
+    ):
 
         if st.button(
             "🎫 RAISE SECURITY TICKET",
-            key="raise_live_ticket",
             type="primary",
-            use_container_width=True
+            use_container_width=True,
+            key=f"raise_ticket_{result['analysis_id']}"
         ):
 
             ticket_id = (
-                "PS-" +
-                datetime.now().strftime(
-                    "%Y%m%d%H%M%S"
-                ) +
-                "-" +
-                str(
-                    np.random.randint(
-                        100,
-                        999
-                    )
-                )
+                "SEC-"
+                + datetime.now().strftime("%Y%m%d%H%M%S")
+                + "-"
+                + str(random.randint(100, 999))
             )
-
 
             new_ticket = {
 
                 "Ticket ID":
                     ticket_id,
 
-                "Created":
-                    datetime.now().strftime(
-                        "%Y-%m-%d %H:%M:%S"
-                    ),
+                "Transaction ID":
+                    result["analysis_id"],
 
-                "Amount":
-                    f"₹{amount:,.2f}",
-
-                "Risk Score":
-                    f"{risk_score:.2f}%",
+                "Status":
+                    "🔴 UNDER REVIEW",
 
                 "Risk Level":
                     "🔴 HIGH",
 
-                "Action":
-                    "HOLD",
+                "Risk Score":
+                    f"{risk_score:.2f}%",
 
-                "Status":
-                    "🔴 UNDER REVIEW"
+                "Amount":
+                    f"₹{amount:,.2f}",
 
+                "Payment Channel":
+                    payment_channel,
+
+                "Device":
+                    device_type,
+
+                "Merchant Risk":
+                    f"{merchant_risk:.2f}",
+
+                "IP Risk":
+                    f"{ip_risk:.2f}",
+
+                "Failed Transactions":
+                    failed_24h,
+
+                "International":
+                    international,
+
+                "Reason":
+                    "High fraud risk detected by FraudShield AI",
+
+                "Created":
+                    datetime.now().strftime(
+                        "%Y-%m-%d %H:%M:%S"
+                    )
             }
-
 
             st.session_state.tickets.append(
                 new_ticket
             )
 
-
             st.session_state.ticket_message = (
-                f"🎫 Ticket {ticket_id} created successfully."
+                f"🎫 Security ticket {ticket_id} "
+                f"created successfully."
             )
 
+            st.session_state.ticket_details = (
+                new_ticket
+            )
 
             st.rerun()
-
-
-        if st.session_state.ticket_message:
-
-            st.success(
-                st.session_state.ticket_message
-            )
-
 
     else:
 
         st.success(
-            "🟢 SECURITY CHECK PASSED"
-        )
+            "🎫 Security ticket has already been "
+            "created for this transaction."
+        )  
 
 
-        st.write(
-            "No additional customer verification is required."
-        )
+            
 
+              
+
+
+ 
 
     # ============================================================
     # 📋 TRANSACTION SUMMARY
