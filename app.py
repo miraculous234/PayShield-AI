@@ -862,9 +862,20 @@ if analyze:
     # to decide LOW / MEDIUM / HIGH.
     # ========================================================
 
+   if risk_score < 30:
+    risk_level = "LOW"
+    action = "ALLOW"
+    icon = "🟢"
+
+elif risk_score < 70:
     risk_level = "MEDIUM"
     action = "2FA"
     icon = "🟠"
+
+else:
+    risk_level = "HIGH"
+    action = "HOLD + SECURITY TICKET"
+    icon = "🔴"
 
 
     # ========================================================
