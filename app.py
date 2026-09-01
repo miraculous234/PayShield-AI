@@ -1112,7 +1112,7 @@ if analyze:
 # DECISION
 # --------------------------------------------------------
 
-# Default: use the actual AI model prediction
+# Actual AI model score
 ai_risk_score = fraud_probability * 100
 
 if demo_mode == "🟢 LOW — ALLOW":
@@ -1159,75 +1159,75 @@ else:
         risk_level = "LOW"
         action = "ALLOW"
         icon = "🟢"
+
+
+# --------------------------------------------------------
+# RESET SECURITY + RECOVERY ACTIONS
+# --------------------------------------------------------
+
+st.session_state.generated_otp = None
+st.session_state.otp_expiry = None
+st.session_state.otp_verified = False
+st.session_state.otp_attempts = 0
+st.session_state.ticket_details = None
+
+st.session_state.scheduled_retry = None
+st.session_state.method_changed = False
+st.session_state.pay_later_selected = False
+
+st.session_state.recovery_result = None
+st.session_state.retry_result = None
+
+
+# --------------------------------------------------------
+# SAVE RESULT
+# --------------------------------------------------------
+
+analysis_id = (
+    "TXN-" +
+    now.strftime("%Y%m%d%H%M%S") +
+    "-" +
+    str(random.randint(100, 999))
+)
+
+result = {
+
+    "analysis_id": analysis_id,
+
+    "risk": risk_score,
+
+    "level": risk_level,
+
+    "action": action,
+
+    "amount": amount,
+
+    "merchant_risk": merchant_risk,
+
+    "ip_risk": ip_risk,
+
+    "failed_24h": failed_24h,
+
+    "amount_to_monthly_spend":
+        amount_to_monthly_spend,
+
+    "failure_rate_24h":
+        failure_rate_24h,
+
+    "velocity_ratio":
+        velocity_ratio,
+
+    "time":
+        now.strftime("%H:%M:%S"),
+
+    "datetime":
+        now.strftime("%Y-%m-%d %H:%M:%S")
+
+}
+
+st.session_state.last_result = result
    
-    # --------------------------------------------------------
-    # RESET SECURITY + RECOVERY ACTIONS
-    # --------------------------------------------------------
-
-    st.session_state.generated_otp = None
-    st.session_state.otp_expiry = None
-    st.session_state.otp_verified = False
-    st.session_state.otp_attempts = 0
-    st.session_state.ticket_details = None
-
-    st.session_state.scheduled_retry = None
-    st.session_state.method_changed = False
-    st.session_state.pay_later_selected = False
-
-    st.session_state.recovery_result = None
-    st.session_state.retry_result = None
-
-
-    # --------------------------------------------------------
-    # SAVE RESULT
-    # --------------------------------------------------------
-
-    analysis_id = (
-        "TXN-" +
-        now.strftime("%Y%m%d%H%M%S") +
-        "-" +
-        str(random.randint(100, 999))
-    )
-
-
-    result = {
-
-        "analysis_id": analysis_id,
-
-        "risk": risk_score,
-
-        "level": risk_level,
-
-        "action": action,
-
-        "amount": amount,
-
-        "merchant_risk": merchant_risk,
-
-        "ip_risk": ip_risk,
-
-        "failed_24h": failed_24h,
-
-        "amount_to_monthly_spend":
-            amount_to_monthly_spend,
-
-        "failure_rate_24h":
-            failure_rate_24h,
-
-        "velocity_ratio":
-            velocity_ratio,
-
-        "time":
-            now.strftime("%H:%M:%S"),
-
-        "datetime":
-            now.strftime("%Y-%m-%d %H:%M:%S")
-
-    }
-
-
-    st.session_state.last_result = result
-
+   
 
 # ============================================================
 # DISPLAY CURRENT RESULT
