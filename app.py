@@ -326,22 +326,39 @@ hr {
 </style>
 """, unsafe_allow_html=True)
     
-
-
 # ============================================================
 # HEADER
 # ============================================================
 
 st.markdown(
-    '<div class="title">🛡️ PayShield AI</div>',
+    """
+    <div class="title">🛡️ PayShield AI</div>
+    <div class="subtitle">
+        AI-Powered Payment Protection • FraudShield •
+        PayRecover AI • Smart Retry • PaymentOps
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
 st.markdown(
-    '<div class="subtitle">'
-    'AI-Powered Payment Protection • FraudShield • '
-    'PayRecover AI • Smart Retry • PaymentOps'
-    '</div>',
+    """
+    <div style="
+        margin-top:18px;
+        padding:12px 18px;
+        border-radius:12px;
+        background:rgba(33,195,84,.08);
+        border:1px solid rgba(33,195,84,.25);
+    ">
+        🟢 <b>PAYMENT SECURITY SYSTEM ONLINE</b>
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        FraudShield ACTIVE
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        PayRecover ACTIVE
+        &nbsp;&nbsp;•&nbsp;&nbsp;
+        PaymentOps ACTIVE
+    </div>
+    """,
     unsafe_allow_html=True
 )
 
@@ -643,16 +660,29 @@ soc2.metric("🟠 MEDIUM", "2FA")
 soc3.metric("🔴 HIGH", "HOLD")
 soc4.metric("🎫 ACTIVE TICKETS", active_tickets)
 
-st.info(
+st.markdown(
     """
-🟢 LOW RISK → ALLOW
+    <div class="info-panel">
 
-🟠 MEDIUM RISK → 2FA VERIFICATION
+    <h3>🛡️ Security Decision Protocol</h3>
 
-🔴 HIGH RISK → HOLD + SECURITY TICKET
+    <span class="badge badge-green">🟢 LOW → ALLOW</span>
 
-❌ FAILED PAYMENT → PAYRECOVER AI → SMART RETRY AI
-"""
+    <span class="badge badge-orange">🟠 MEDIUM → 2FA</span>
+
+    <span class="badge badge-red">🔴 HIGH → HOLD</span>
+
+    <br><br>
+
+    ❌ Failed Payment
+    &nbsp;→&nbsp;
+    💰 PayRecover AI
+    &nbsp;→&nbsp;
+    ⏰ Smart Retry AI
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 
