@@ -1998,52 +1998,29 @@ st.markdown(
 
 
 # ============================================================
-# LIVE SYSTEM STATUS
+# PAYMENTOPS SYSTEM STATUS
 # ============================================================
 
 st.subheader("📡 PaymentOps System Status")
 
 op1, op2, op3, op4 = st.columns(4)
 
-with op1:
-    st.metric(
-        "🛡️ FraudShield",
-        "ACTIVE"
-    )
-
-with op2:
-    st.metric(
-        "💰 PayRecover",
-        "ACTIVE"
-    )
-
-with op3:
-    st.metric(
-        "⏰ Smart Retry",
-        "ACTIVE"
-    )
-
-with op4:
-    st.metric(
-        "🤖 PaymentOps",
-        "ACTIVE"
-    )
+op1.metric("🛡️ FraudShield", "ACTIVE")
+op2.metric("💰 PayRecover", "ACTIVE")
+op3.metric("⏰ Smart Retry", "ACTIVE")
+op4.metric("🤖 PaymentOps", "ACTIVE")
 
 
 # ============================================================
-# LIVE PAYMENTOPS STATUS
+# LIVE PAYMENTOPS DECISION
 # ============================================================
 
 if st.session_state.last_result:
 
     ops_result = st.session_state.last_result
 
-    ops_risk = float(
-        ops_result["risk"]
-    )
-
+    ops_risk = float(ops_result["risk"])
     ops_level = ops_result["level"]
-
     ops_action = ops_result["action"]
 
     if ops_level == "LOW":
@@ -2072,16 +2049,13 @@ if st.session_state.last_result:
             "Transaction requires security review."
         )
 
-
     st.subheader("⚡ Live PaymentOps Decision")
 
     st.markdown(
         f"""
         <div class="card">
 
-            <h2>
-            {ops_icon} {ops_level}
-            </h2>
+            <h2>{ops_icon} {ops_level}</h2>
 
             <p>
             <b>Transaction ID:</b>
@@ -2183,107 +2157,6 @@ st.markdown(
     </div>
     """,
     unsafe_allow_html=True
-)
-
-
-# ============================================================
-# LIVE RECOVERY INTEGRATION
-# ============================================================
-
-if st.session_state.recovery_result is not None:
-
-    st.subheader("💰 PaymentOps Recovery Intelligence")
-
-    recovery_probability = float(
-        st.session_state.recovery_result
-    )
-
-    rec1, rec2, rec3 = st.columns(3)
-
-    rec1.metric(
-        "Recovery Probability",
-        f"{recovery_probability:.2f}%"
-    )
-
-    if st.session_state.retry_result:
-
-        best_time = st.session_state.retry_result[
-            "best_time"
-        ]
-
-        best_probability = st.session_state.retry_result[
-            "best_probability"
-        ]
-
-        rec2.metric(
-            "Recommended Retry",
-            f"{best_time} min"
-        )
-
-        rec3.metric(
-            "Retry Success",
-            f"{best_probability:.2f}%"
-        )
-
-        st.success(
-            f"⭐ PaymentOps recommendation: Retry after "
-            f"{best_time} minutes with an estimated "
-            f"{best_probability:.2f}% success probability."
-        )
-
-    else:
-
-        rec2.metric(
-            "Recommended Retry",
-            "Calculating"
-        )
-
-        rec3.metric(
-            "Retry Success",
-            "Calculating"
-        )
-
-
-# ============================================================
-# PAYMENTOPS SUMMARY
-# ============================================================
-
-st.subheader("📋 PaymentOps Summary")
-
-summary_data = {
-    "Component": [
-        "FraudShield AI",
-        "Security System",
-        "Payment Recovery",
-        "Smart Retry",
-        "PaymentOps"
-    ],
-
-    "Function": [
-        "Fraud & risk detection",
-        "2FA / Hold / Security Ticket",
-        "Failed payment recovery",
-        "Retry optimization",
-        "Central orchestration"
-    ],
-
-    "Status": [
-        "🟢 ACTIVE",
-        "🟢 ACTIVE",
-        "🟢 ACTIVE",
-        "🟢 ACTIVE",
-        "🟢 ACTIVE"
-    ]
-}
-
-paymentops_summary = pd.DataFrame(
-    summary_data
-)
-
-st.dataframe(
-    paymentops_summary,
-    use_container_width=True,
-    hide_index=True
 )
 
 # ============================================================
