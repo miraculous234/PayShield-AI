@@ -1,8 +1,8 @@
 streamlit
-pandas
-numpy
-scikit-learn==1.6.1
 joblib
-xgboost
+numpy
+pandas
 langchain-groq
-python-dotenv
+langchain-core
+streamlit-authenticator
+bcrypt
