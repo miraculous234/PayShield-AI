@@ -24,18 +24,39 @@ st.set_page_config(
 # PATHS
 # ================================================================
 
-FRAUD_MODEL = r"""/content/PayShield/models/fraud_model.pkl"""
-RECOVERY_MODEL = r"""/content/PayShield/models/recovery_model.pkl"""
-RETRY_MODEL = r"""/content/PayShield/models/retry_model.pkl"""
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-FRAUD_FEATURES = r"""/content/PayShield/config/fraud_features.json"""
-RECOVERY_FEATURES = r"""/content/PayShield/config/recovery_features.json"""
-RETRY_FEATURES = r"""/content/PayShield/config/retry_features.json"""
+FRAUD_MODEL = os.path.join(
+    BASE_DIR, "models", "fraud_model.pkl"
+)
 
-FRAUD_DATA = r"""/content/PayShield/data/fraud_test.csv"""
-RECOVERY_DATA = r"""/content/PayShield/data/recovery_full.csv"""
+RECOVERY_MODEL = os.path.join(
+    BASE_DIR, "models", "recovery_model.pkl"
+)
 
+RETRY_MODEL = os.path.join(
+    BASE_DIR, "models", "retry_model.pkl"
+)
 
+FRAUD_FEATURES = os.path.join(
+    BASE_DIR, "config", "fraud_features.json"
+)
+
+RECOVERY_FEATURES = os.path.join(
+    BASE_DIR, "config", "recovery_features.json"
+)
+
+RETRY_FEATURES = os.path.join(
+    BASE_DIR, "config", "retry_features.json"
+)
+
+FRAUD_DATA = os.path.join(
+    BASE_DIR, "data", "fraud_test.csv"
+)
+
+RECOVERY_DATA = os.path.join(
+    BASE_DIR, "data", "recovery_full.csv"
+)
 # ================================================================
 # LOAD MODELS
 # ================================================================
