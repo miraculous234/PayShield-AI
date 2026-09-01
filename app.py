@@ -1546,12 +1546,28 @@ st.divider()
 st.header("🎫 Live Security Tickets")
 
 
+# ------------------------------------------------
+# TICKET MESSAGE
+# ------------------------------------------------
+
+if st.session_state.get("ticket_message"):
+
+    st.success(
+        st.session_state.ticket_message
+    )
+
+    st.session_state.ticket_message = None
+
+
+# ------------------------------------------------
+# DISPLAY TICKETS
+# ------------------------------------------------
+
 if st.session_state.tickets:
 
     ticket_df = pd.DataFrame(
         st.session_state.tickets
     )
-
 
     st.dataframe(
         ticket_df,
@@ -1559,11 +1575,14 @@ if st.session_state.tickets:
         hide_index=True
     )
 
-
     st.subheader(
         "🔧 Ticket Management"
     )
 
+
+    # ------------------------------------------------
+    # INDIVIDUAL TICKET MANAGEMENT
+    # ------------------------------------------------
 
     for index, ticket in enumerate(
         st.session_state.tickets
@@ -1574,51 +1593,95 @@ if st.session_state.tickets:
         )
 
 
-        t1.write(
-            f"🎫 **{ticket['Ticket ID']}**"
-        )
+        # -------------------------------
+        # TICKET ID
+        # -------------------------------
+
+        with t1:
+
+            st.markdown(
+                f"🎫 **{ticket.get('Ticket ID', 'N/A')}**"
+            )
 
 
-        t2.write(
-            f"{ticket['Status']}  |  "
-            f"{ticket['Amount']}  |  "
-            f"{ticket['Risk Score']}"
-        )
+        # -------------------------------
+        # TICKET INFORMATION
+        # -------------------------------
+
+        with t2:
+
+            status = ticket.get(
+                "Status",
+                "🔴 UNDER REVIEW"
+            )
+
+            amount_value = ticket.get(
+                "Amount",
+                "N/A"
+            )
+
+            risk_value = ticket.get(
+                "Risk Score",
+                "N/A"
+            )
+
+            st.write(
+                f"{status}  |  "
+                f"Amount: {amount_value}  |  "
+                f"Risk: {risk_value}"
+            )
 
 
-        if ticket["Status"] == "🔴 UNDER REVIEW":
+        # -------------------------------
+        # RESOLVE BUTTON
+        # -------------------------------
 
-            if t3.button(
-                "✅ RESOLVE",
-                key=f"resolve_ticket_{index}",
-                use_container_width=True
-            ):
+        with t3:
 
-                st.session_state.tickets[
-                    index
-                ]["Status"] = "🟢 RESOLVED"
+            if status == "🔴 UNDER REVIEW":
+
+                if st.button(
+                    "✅ RESOLVE",
+                    key=f"resolve_ticket_{index}",
+                    use_container_width=True
+                ):
+
+                    # Update ticket status
+                    st.session_state.tickets[
+                        index
+                    ]["Status"] = "🟢 RESOLVED"
 
 
-                st.session_state.ticket_message = (
-                    f"Ticket {ticket['Ticket ID']} resolved."
+                    # Success message
+                    st.session_state.ticket_message = (
+                        f"✅ Ticket "
+                        f"{ticket.get('Ticket ID', 'N/A')} "
+                        f"resolved successfully."
+                    )
+
+
+                    # Refresh application
+                    st.rerun()
+
+
+            else:
+
+                st.success(
+                    "🟢 RESOLVED"
                 )
 
 
-                st.rerun()
-
-        else:
-
-            t3.success(
-                "RESOLVED"
-            )
-
+# ------------------------------------------------
+# EMPTY STATE
+# ------------------------------------------------
 
 else:
 
     st.info(
-        "No active security tickets."
+        "🟢 No active security tickets. "
+        "High-risk transactions will appear here "
+        "when a security ticket is raised."
     )
-
 
 # ================================================================
 # 💰 PAYRECOVER AI
