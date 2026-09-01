@@ -850,19 +850,11 @@ if analyze:
 
     risk_score = fraud_probability * 100
 
+# ========================================================
+# REAL RISK DECISION
+# ========================================================
 
-    # ========================================================
-    # DEMO 2FA MODE
-    # ========================================================
-    #
-    # For the Razorpay Buildathon demo:
-    # Every Analyze click goes to MEDIUM → 2FA.
-    #
-    # Remove these 3 lines if you want the real model
-    # to decide LOW / MEDIUM / HIGH.
-    # ========================================================
-
-   if risk_score < 30:
+if risk_score < 30:
     risk_level = "LOW"
     action = "ALLOW"
     icon = "🟢"
@@ -876,6 +868,7 @@ else:
     risk_level = "HIGH"
     action = "HOLD + SECURITY TICKET"
     icon = "🔴"
+    
 
 
     # ========================================================
