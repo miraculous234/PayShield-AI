@@ -34,24 +34,23 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+
+
 # ============================================================
-# USER AUTHENTICATION SETUP (Fixed for streamlit-authenticator)
+# USER AUTHENTICATION SETUP
 # ============================================================
 
 names = ["Merchant Admin", "Security Analyst"]
 usernames = ["merchant_admin", "analyst"]
 passwords = ["admin123", "shield123"]
 
-# Version-agnostic password hashing fallback
+# Version-agnostic password hashing
 try:
-    # Modern direct element hashing
     hashed_passwords = [stauth.Hasher.hash(p) for p in passwords]
 except AttributeError:
     try:
-        # Alternative method for older 0.3.x releases
         hashed_passwords = stauth.Hasher(passwords).generate()
     except Exception:
-        # Direct fallback
         hashed_passwords = passwords
 
 credentials = {
@@ -68,8 +67,12 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# Render login component
-authenticator.login("PayShield AI Enterprise Access", "main")
+# Fix: Use keyword argument or call login without positional string args
+try:
+    authenticator.login(location="main")
+except TypeError:
+    # Fallback for older library signatures
+    authenticator.login("PayShield AI Enterprise Access", location="main")
 
 if st.session_state.get("authentication_status") == False:
     st.error("Username/password is incorrect")
