@@ -1112,6 +1112,9 @@ if analyze:
 # DECISION
 # --------------------------------------------------------
 
+# Default: use the actual AI model prediction
+ai_risk_score = fraud_probability * 100
+
 if demo_mode == "🟢 LOW — ALLOW":
 
     risk_score = 20.0
@@ -1135,9 +1138,9 @@ elif demo_mode == "🔴 HIGH — HOLD + TICKET":
 
 else:
 
-    # REAL AI MODEL RESULT
+    # ACTUAL FRAUDSHIELD AI RESULT
 
-    risk_score = fraud_probability * 100
+    risk_score = ai_risk_score
 
     if risk_score >= 70:
 
@@ -1156,7 +1159,6 @@ else:
         risk_level = "LOW"
         action = "ALLOW"
         icon = "🟢"
-   
    
     # --------------------------------------------------------
     # RESET SECURITY + RECOVERY ACTIONS
