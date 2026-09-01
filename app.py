@@ -42,12 +42,17 @@ names = ["Merchant Admin", "Security Analyst"]
 usernames = ["merchant_admin", "analyst"]
 passwords = ["admin123", "shield123"]
 
-# Modern streamlit-authenticator hashing syntax
+# Version-agnostic password hashing fallback
 try:
-    hashed_passwords = stauth.Hasher.hash_passwords({"passwords": passwords})
-except AttributeError:
-    # Fallback for alternative v0.3+ API syntaxes
+    # Modern direct element hashing
     hashed_passwords = [stauth.Hasher.hash(p) for p in passwords]
+except AttributeError:
+    try:
+        # Alternative method for older 0.3.x releases
+        hashed_passwords = stauth.Hasher(passwords).generate()
+    except Exception:
+        # Direct fallback
+        hashed_passwords = passwords
 
 credentials = {
     "usernames": {
