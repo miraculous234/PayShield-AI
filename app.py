@@ -1682,11 +1682,7 @@ st.divider()
 
 st.header("🎫 Live Security Tickets")
 
-
-# ------------------------------------------------
-# TICKET MESSAGE
-# ------------------------------------------------
-
+# Show success message
 if st.session_state.get("ticket_message"):
 
     st.success(
@@ -1696,116 +1692,212 @@ if st.session_state.get("ticket_message"):
     st.session_state.ticket_message = None
 
 
-# ------------------------------------------------
-# DISPLAY TICKETS
-# ------------------------------------------------
+# ================================================================
+# DISPLAY EXISTING TICKETS
+# ================================================================
 
-if st.session_state.tickets:
-
-    ticket_df = pd.DataFrame(
-        st.session_state.tickets
-    )
-
-    st.dataframe(
-        ticket_df,
-        use_container_width=True,
-        hide_index=True
-    )
+if st.session_state.get("tickets"):
 
     st.subheader(
-        "🔧 Ticket Management"
+        f"📊 {len(st.session_state.tickets)} Security Ticket(s)"
     )
-
-
-    # ------------------------------------------------
-    # INDIVIDUAL TICKET MANAGEMENT
-    # ------------------------------------------------
 
     for index, ticket in enumerate(
         st.session_state.tickets
     ):
 
-        t1, t2, t3 = st.columns(
-            [2, 4, 2]
+        status = ticket.get(
+            "Status",
+            "🔴 UNDER REVIEW"
         )
 
+        # --------------------------------------------------------
+        # TICKET CARD
+        # --------------------------------------------------------
 
-        # -------------------------------
-        # TICKET ID
-        # -------------------------------
-
-        with t1:
+        if status == "🔴 UNDER REVIEW":
 
             st.markdown(
-                f"🎫 **{ticket.get('Ticket ID', 'N/A')}**"
+                f"""
+                <div class="ticket-card">
+
+                    <h3>
+                    🎫 {ticket.get("Ticket ID", "N/A")}
+                    </h3>
+
+                    <p>
+                    <b>Status:</b> 🔴 UNDER REVIEW
+                    </p>
+
+                    <p>
+                    <b>Transaction:</b>
+                    {ticket.get("Transaction ID", "N/A")}
+                    </p>
+
+                    <p>
+                    <b>Risk Score:</b>
+                    {ticket.get("Risk Score", "N/A")}
+                    </p>
+
+                    <p>
+                    <b>Amount:</b>
+                    {ticket.get("Amount", "N/A")}
+                    </p>
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        else:
+
+            st.markdown(
+                f"""
+                <div class="success-ticket">
+
+                    <h3>
+                    🎫 {ticket.get("Ticket ID", "N/A")}
+                    </h3>
+
+                    <p>
+                    <b>Status:</b> 🟢 RESOLVED
+                    </p>
+
+                    <p>
+                    <b>Transaction:</b>
+                    {ticket.get("Transaction ID", "N/A")}
+                    </p>
+
+                </div>
+                """,
+                unsafe_allow_html=True
             )
 
 
-        # -------------------------------
-        # TICKET INFORMATION
-        # -------------------------------
+        # ========================================================
+        # COMPLETE DETAILS
+        # ========================================================
 
-        with t2:
+        with st.expander(
+            "🔍 View Complete Ticket Details"
+        ):
 
-            status = ticket.get(
-                "Status",
-                "🔴 UNDER REVIEW"
-            )
+            col1, col2 = st.columns(2)
 
-            amount_value = ticket.get(
-                "Amount",
-                "N/A"
-            )
+            with col1:
 
-            risk_value = ticket.get(
-                "Risk Score",
-                "N/A"
-            )
-
-            st.write(
-                f"{status}  |  "
-                f"Amount: {amount_value}  |  "
-                f"Risk: {risk_value}"
-            )
-
-
-        # -------------------------------
-        # RESOLVE BUTTON
-        # -------------------------------
-
-        with t3:
-
-            if status == "🔴 UNDER REVIEW":
-
-                if st.button(
-                    "✅ RESOLVE",
-                    key=f"resolve_ticket_{index}",
-                    use_container_width=True
-                ):
-
-                    # Update ticket status
-                    st.session_state.tickets[
-                        index
-                    ]["Status"] = "🟢 RESOLVED"
-
-
-                    # Success message
-                    st.session_state.ticket_message = (
-                        f"✅ Ticket "
-                        f"{ticket.get('Ticket ID', 'N/A')} "
-                        f"resolved successfully."
-                    )
-
-
-                    # Refresh application
-                    st.rerun()
-
-
-            else:
-
-                st.success(
-                    "🟢 RESOLVED"
+                st.write(
+                    f"**🎫 Ticket ID:** "
+                    f"{ticket.get('Ticket ID', 'N/A')}"
                 )
+
+                st.write(
+                    f"**💳 Transaction ID:** "
+                    f"{ticket.get('Transaction ID', 'N/A')}"
+                )
+
+                st.write(
+                    f"**💰 Amount:** "
+                    f"{ticket.get('Amount', 'N/A')}"
+                )
+
+                st.write(
+                    f"**📊 Risk Score:** "
+                    f"{ticket.get('Risk Score', 'N/A')}"
+                )
+
+                st.write(
+                    f"**🚦 Risk Level:** "
+                    f"{ticket.get('Risk Level', 'N/A')}"
+                )
+
+                st.write(
+                    f"**📡 Payment Channel:** "
+                    f"{ticket.get('Payment Channel', 'N/A')}"
+                )
+
+            with col2:
+
+                st.write(
+                    f"**📱 Device:** "
+                    f"{ticket.get('Device', 'N/A')}"
+                )
+
+                st.write(
+                    f"**🌐 IP Risk:** "
+                    f"{ticket.get('IP Risk', 'N/A')}"
+                )
+
+                st.write(
+                    f"**🏪 Merchant Risk:** "
+                    f"{ticket.get('Merchant Risk', 'N/A')}"
+                )
+
+                st.write(
+                    f"**❌ Failed Transactions:** "
+                    f"{ticket.get('Failed Transactions', 'N/A')}"
+                )
+
+                st.write(
+                    f"**🌍 International:** "
+                    f"{ticket.get('International', 'N/A')}"
+                )
+
+                st.write(
+                    f"**🕐 Created:** "
+                    f"{ticket.get('Created', 'N/A')}"
+                )
+
+            st.info(
+                f"🔎 Reason: "
+                f"{ticket.get('Reason', 'N/A')}"
+            )
+
+
+        # ========================================================
+        # RESOLVE TICKET
+        # ========================================================
+
+        if status == "🔴 UNDER REVIEW":
+
+            if st.button(
+                "✅ RESOLVE TICKET",
+                key=f"resolve_ticket_{index}",
+                type="primary",
+                use_container_width=True
+            ):
+
+                st.session_state.tickets[
+                    index
+                ]["Status"] = "🟢 RESOLVED"
+
+                st.session_state.ticket_message = (
+                    "✅ Ticket "
+                    + str(
+                        ticket.get(
+                            "Ticket ID",
+                            "N/A"
+                        )
+                    )
+                    + " resolved successfully."
+                )
+
+                st.rerun()
+
+        else:
+
+            st.success(
+                "🟢 TICKET RESOLVED"
+            )
+
+
+else:
+
+    st.info(
+        "🟢 No security tickets yet. "
+        "High-risk transactions will appear here "
+        "after a security ticket is raised."
+    )
 
 
 # ------------------------------------------------
