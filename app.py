@@ -8,9 +8,20 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
-from langchain_groq import ChatGroq
-from langchain.core.prompts import PromptTemplate
 
+# Flexible imports to handle different LangChain package versions
+try:
+    from langchain_groq import ChatGroq
+except ImportError:
+    ChatGroq = None
+
+try:
+    from langchain_core.prompts import PromptTemplate
+except ImportError:
+    try:
+        from langchain.prompts import PromptTemplate
+    except ImportError:
+        PromptTemplate = None
 # ============================================================
 # PAGE CONFIG & STYLES
 # ============================================================
@@ -194,7 +205,6 @@ st.divider()
 # ============================================================
 # GROQ PAYMENTOPS AGENT FUNCTION
 # ============================================================
-
 def generate_agentic_ticket(payload_data, risk_score):
     try:
         api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
@@ -230,7 +240,7 @@ def generate_agentic_ticket(payload_data, risk_score):
             "amt_dev": payload_data.get("amt_dev", 500.0)
         })
         return response.content
-    except Exception as e:
+    except Exception:
         return (
             "• **Threat Classification**: High-Risk Velocity & Deviation Anomaly\n"
             "• **Behavioral Anomaly**: Transaction amount deviated significantly from user mean.\n"
