@@ -941,7 +941,7 @@ if failed_payment:
 
     st.success(f"⭐ PayRecover AI recommends retrying after {best_time} minutes with {best_probability:.2f}% predicted success.")
 
-v# ============================================================
+# ============================================================
 # PAYMENTOPS AI — INCIDENT ANALYSIS
 # ============================================================
 
