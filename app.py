@@ -241,7 +241,7 @@ Write a concise security brief with exactly these three bullets:
 Do not claim certainty about fraud. Do not invent facts.
 """
         response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
             contents=prompt
         )
         text = getattr(response, "text", None)
