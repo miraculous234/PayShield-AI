@@ -922,16 +922,26 @@ if failed_payment:
     st.progress(int(min(max(recovery_probability, 0), 100)))
 
     st.header("⏰ Smart Retry AI")
+
+    # ========================================================
+    # RETRY-TIME OPTIMIZATION
+    # ========================================================
+
     retry_times = [5, 15, 30, 60, 120, 240, 480, 1440]
     probabilities = []
 
     for retry_time in retry_times:
         r_inp = pd.DataFrame([{
-            "customer_success_rate": customer_success_rate, "method_success_rate": method_success_rate,
-            "previous_failures": previous_failures, "retry_time_minutes": retry_time
+            "customer_success_rate": customer_success_rate,
+            "method_success_rate": method_success_rate,
+            "previous_failures": previous_failures,
+            "retry_time_minutes": retry_time
         }]).reindex(columns=retry_features)
+
         try:
-            probabilities.append(float(retry_model.predict_proba(r_inp)[0, 1]) * 100)
+            probabilities.append(
+                float(retry_model.predict_proba(r_inp)[0, 1]) * 100
+            )
         except Exception:
             probabilities.append(0.0)
 
@@ -939,7 +949,40 @@ if failed_payment:
     best_time = retry_times[best_index]
     best_probability = probabilities[best_index] if probabilities else 0.0
 
+    retry_df = pd.DataFrame({
+        "Retry Time": [f"{x} min" for x in retry_times],
+        "Success Probability": probabilities
+    })
+
+    st.subheader("📈 Retry Time vs Predicted Success")
+
+    # Graph: actual Smart Retry model probabilities
+    st.line_chart(
+        retry_df.set_index("Retry Time")["Success Probability"],
+        use_container_width=True
+    )
+
+    rt1, rt2 = st.columns(2)
+
+    with rt1:
+        st.metric(
+            "⭐ Recommended Retry Time",
+            f"{best_time} min"
+        )
+
+    with rt2:
+        st.metric(
+            "Predicted Retry Success",
+            f"{best_probability:.2f}%"
+        )
+
     st.success(f"⭐ PayRecover AI recommends retrying after {best_time} minutes with {best_probability:.2f}% predicted success.")
+
+    st.caption(
+        "Smart Retry AI compares multiple retry windows using the trained retry model. "
+        "Payment Method Optimization compares available payment methods using the trained "
+        "PayRecover model."
+    )
 
 # ============================================================
 # 🤖 PAYMENTOPS AI — INCIDENT ANALYSIS
