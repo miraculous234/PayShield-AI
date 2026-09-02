@@ -1,3 +1,4 @@
+
 import os
 import json
 import random
@@ -9,7 +10,7 @@ import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# Flexible imports for LangChain / Groq compatibility
+# Flexible imports for LangChain compatibility
 try:
     from langchain_groq import ChatGroq
 except ImportError:
@@ -33,6 +34,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
 
 # ============================================================
 # USER AUTHENTICATION SETUP
@@ -65,14 +68,12 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=1
 )
 
-# Safe login trigger across versions
+# Fix: Use keyword argument or call login without positional string args
 try:
     authenticator.login(location="main")
 except TypeError:
-    try:
-        authenticator.login("PayShield AI Enterprise Access", location="main")
-    except Exception:
-        authenticator.login()
+    # Fallback for older library signatures
+    authenticator.login("PayShield AI Enterprise Access", location="main")
 
 if st.session_state.get("authentication_status") == False:
     st.error("Username/password is incorrect")
@@ -82,16 +83,11 @@ elif st.session_state.get("authentication_status") is None:
     st.stop()
 
 # ============================================================
-# AUTHENTICATED APP CONTENT & NAVIGATION
+# AUTHENTICATED APP CONTENT
 # ============================================================
 
-st.sidebar.write(f"Logged in as: **{st.session_state.get('name', 'Merchant Admin')}**")
-try:
-    authenticator.logout("Logout", "sidebar")
-except Exception:
-    if st.sidebar.button("Logout"):
-        st.session_state["authentication_status"] = None
-        st.rerun()
+st.sidebar.write(f"Logged in as: **{st.session_state.get('name')}**")
+authenticator.logout("Logout", "sidebar")
 
 # ============================================================
 # PATHS
@@ -268,115 +264,30 @@ def generate_agentic_ticket(payload_data, risk_score):
         )
 
 # ============================================================
-# LOAD MODELS & DATA (WITH HARDENED FALLBACK ENGINE)
+# LOAD MODELS & DATA
 # ============================================================
-
-class RuleBasedFallbackModel:
-    """Fallback ML engine to guarantee app availability during version mismatches."""
-    def __init__(self, model_type="fraud"):
-        self.model_type = model_type
-
-    def predict_proba(self, X):
-        num_samples = len(X)
-        if self.model_type == "fraud":
-            probs = []
-            for _, row in X.iterrows():
-                amount = row.get("transaction_amount", 5000)
-                ip_risk = row.get("ip_risk_score", 0.3)
-                m_risk = row.get("merchant_risk_score", 0.25)
-                
-                base_risk = 0.15
-                if amount > 50000: base_risk += 0.35
-                if ip_risk > 0.6: base_risk += 0.25
-                if m_risk > 0.6: base_risk += 0.20
-                
-                fraud_p = min(max(base_risk, 0.05), 0.95)
-                probs.append([1.0 - fraud_p, fraud_p])
-            return np.array(probs)
-        
-        elif self.model_type == "recovery":
-            return np.tile([0.35, 0.65], (num_samples, 1))
-        
-        else:  # retry model
-            return np.tile([0.30, 0.70], (num_samples, 1))
-
-    def predict(self, X):
-        probs = self.predict_proba(X)
-        return (probs[:, 1] >= 0.5).astype(int)
-
 
 @st.cache_resource
 def load_models():
-    try:
-        fraud = joblib.load(FRAUD_MODEL)
-        recovery = joblib.load(RECOVERY_MODEL)
-        retry = joblib.load(RETRY_MODEL)
-        return fraud, recovery, retry, False
-    except Exception as e:
-        return (
-            RuleBasedFallbackModel("fraud"),
-            RuleBasedFallbackModel("recovery"),
-            RuleBasedFallbackModel("retry"),
-            True
-        )
+    fraud = joblib.load(FRAUD_MODEL)
+    recovery = joblib.load(RECOVERY_MODEL)
+    retry = joblib.load(RETRY_MODEL)
+    return fraud, recovery, retry
 
 @st.cache_data
 def load_features():
-    default_fraud_features = [
-        "account_age_days", "credit_score_band", "kyc_level", "avg_monthly_spend",
-        "merchant_risk_score", "transaction_amount", "payment_channel",
-        "device_type", "is_international", "ip_risk_score", "txn_count_1h",
-        "txn_count_24h", "failed_txn_count_24h", "geo_distance_from_last_txn",
-        "amount_deviation_from_user_mean", "post_auth_risk_score", "transaction_hour",
-        "day_of_week", "is_weekend", "is_night", "amount_to_monthly_spend",
-        "failure_rate_24h", "velocity_ratio", "customer_txn_count_before",
-        "customer_avg_amount_before", "customer_failed_rate_before",
-        "merchant_txn_count_before", "merchant_avg_amount_before", "merchant_fraud_rate_before"
-    ]
-    default_recovery_features = [
-        "amount", "payment_method", "failure_reason", "retry_count",
-        "minutes_since_failure", "customer_success_rate", "method_success_rate",
-        "previous_failures", "is_international", "device_type", "hour", "day_of_week"
-    ]
-    default_retry_features = [
-        "customer_success_rate", "method_success_rate", "previous_failures", "retry_time_minutes"
-    ]
-
-    try:
-        with open(FRAUD_FEATURES, "r") as f: fraud = json.load(f)
-    except Exception: fraud = default_fraud_features
-
-    try:
-        with open(RECOVERY_FEATURES, "r") as f: recovery = json.load(f)
-    except Exception: recovery = default_recovery_features
-
-    try:
-        with open(RETRY_FEATURES, "r") as f: retry = json.load(f)
-    except Exception: retry = default_retry_features
-
+    with open(FRAUD_FEATURES, "r") as f:
+        fraud = json.load(f)
+    with open(RECOVERY_FEATURES, "r") as f:
+        recovery = json.load(f)
+    with open(RETRY_FEATURES, "r") as f:
+        retry = json.load(f)
     return fraud, recovery, retry
 
 @st.cache_data
 def load_data():
-    try:
-        fraud = pd.read_csv(FRAUD_DATA)
-    except Exception:
-        fraud = pd.DataFrame({
-            "transaction_id": ["TXN-1001", "TXN-1002"],
-            "transaction_time": ["2026-03-31 10:00:00", "2026-03-31 10:05:00"],
-            "customer_id": ["CUST-01", "CUST-02"],
-            "merchant_id": ["MERCH-01", "MERCH-02"],
-            "transaction_amount": [5000.0, 120000.0],
-            "payment_channel": ["UPI", "CARD"],
-            "device_type": ["Mobile", "Desktop"],
-            "is_fraud": [0, 1]
-        })
-
-    try:
-        recovery = pd.read_csv(RECOVERY_DATA)
-    except Exception:
-        recovery = pd.DataFrame({"recovery_success": [1, 0, 1]})
-
+    fraud = pd.read_csv(FRAUD_DATA)
+    recovery = pd.read_csv(RECOVERY_DATA)
     return fraud, recovery
 
 def clean_features(features):
@@ -388,16 +299,18 @@ def clean_features(features):
                 return features[key]
     return list(features)
 
-# Load Models & Features cleanly
-fraud_model, recovery_model, retry_model, is_fallback = load_models()
-fraud_features, recovery_features, retry_features = load_features()
-fraud_features = clean_features(fraud_features)
-recovery_features = clean_features(recovery_features)
-retry_features = clean_features(retry_features)
-fraud_data, recovery_data = load_data()
-
-if is_fallback:
-    st.warning("⚠️ ML Model Binary Mismatch Detected: PayShield running in High-Availability Heuristic Mode.")
+try:
+    fraud_model, recovery_model, retry_model = load_models()
+    fraud_features, recovery_features, retry_features = load_features()
+    fraud_features = clean_features(fraud_features)
+    recovery_features = clean_features(recovery_features)
+    retry_features = clean_features(retry_features)
+    fraud_data, recovery_data = load_data()
+except Exception as e:
+    st.error("❌ PayShield could not load the required files.")
+    st.code(str(e))
+    st.info("Check that models/, config/, and data/ are present inside your GitHub repository.")
+    st.stop()
 
 # ============================================================
 # SIDEBAR — PAYMENT SIMULATOR & WEBHOOK CONSUMER
@@ -439,6 +352,153 @@ analyze = st.sidebar.button("🔍 ANALYZE PAYMENT", type="primary", use_containe
 
 st.sidebar.divider()
 
+# ============================================================
+# SHARED FRAUD DECISION ENGINE
+# ============================================================
+
+def run_fraud_decision(
+    amount_value,
+    payment_channel_value,
+    device_type_value,
+    international_value,
+    merchant_risk_value,
+    ip_risk_value,
+    txn_1h_value,
+    txn_24h_value,
+    failed_24h_value,
+    geo_distance_value,
+    amount_deviation_value,
+    customer_avg_amount_value,
+    customer_txn_before_value,
+    customer_failed_rate_value,
+    merchant_txn_before_value,
+    merchant_avg_amount_value,
+    merchant_fraud_rate_value,
+    post_auth_risk_value,
+    source="Payment Simulator",
+    external_id=None,
+    event_name=None,
+    demo_mode_value="🤖 AI Model"
+):
+    now = datetime.now()
+    hour = now.hour
+    day = now.weekday()
+
+    # Map UI labels to the categorical values used during model training.
+    payment_map = {
+        "UPI": "upi",
+        "CARD": "card",
+        "WALLET": "wallet",
+        "NETBANKING": "bank_transfer",
+        "upi": "upi",
+        "card": "card",
+        "wallet": "wallet",
+        "netbanking": "bank_transfer",
+        "bank_transfer": "bank_transfer"
+    }
+    device_map = {
+        "Mobile": "mobile",
+        "Desktop": "desktop",
+        "Tablet": "tablet",
+        "mobile": "mobile",
+        "desktop": "desktop",
+        "tablet": "tablet"
+    }
+
+    model_payment_channel = payment_map.get(payment_channel_value, str(payment_channel_value).lower())
+    model_device_type = device_map.get(device_type_value, str(device_type_value).lower())
+
+    amount_to_monthly_spend = amount_value / max(monthly_spend, 1)
+    failure_rate_24h = failed_24h_value / max(txn_24h_value, 1)
+    velocity_ratio = txn_1h_value / max(txn_24h_value, 1)
+    is_weekend = int(day >= 5)
+    is_night = int(hour < 6 or hour >= 22)
+
+    fraud_input = pd.DataFrame([{
+        "account_age_days": 1000,
+        "credit_score_band": 3,
+        "kyc_level": 2,
+        "avg_monthly_spend": monthly_spend,
+        "merchant_risk_score": merchant_risk_value,
+        "transaction_amount": amount_value,
+        "payment_channel": model_payment_channel,
+        "device_type": model_device_type,
+        "is_international": int(international_value),
+        "ip_risk_score": ip_risk_value,
+        "txn_count_1h": txn_1h_value,
+        "txn_count_24h": txn_24h_value,
+        "failed_txn_count_24h": failed_24h_value,
+        "geo_distance_from_last_txn": geo_distance_value,
+        "amount_deviation_from_user_mean": amount_deviation_value,
+        "post_auth_risk_score": post_auth_risk_value,
+        "transaction_hour": hour,
+        "day_of_week": day,
+        "is_weekend": is_weekend,
+        "is_night": is_night,
+        "amount_to_monthly_spend": amount_to_monthly_spend,
+        "failure_rate_24h": failure_rate_24h,
+        "velocity_ratio": velocity_ratio,
+        "customer_txn_count_before": customer_txn_before_value,
+        "customer_avg_amount_before": customer_avg_amount_value,
+        "customer_failed_rate_before": customer_failed_rate_value,
+        "merchant_txn_count_before": merchant_txn_before_value,
+        "merchant_avg_amount_before": merchant_avg_amount_value,
+        "merchant_fraud_rate_before": merchant_fraud_rate_value
+    }])
+
+    # Reindex protects deployment from harmless feature-order differences.
+    fraud_input = fraud_input.reindex(columns=fraud_features)
+    fraud_probability = float(fraud_model.predict_proba(fraud_input)[0, 1])
+    ai_risk_score = fraud_probability * 100
+
+    if demo_mode_value == "🟢 LOW — ALLOW":
+        risk_score, risk_level, action = 20.0, "LOW", "ALLOW"
+    elif demo_mode_value == "🟠 MEDIUM — 2FA":
+        risk_score, risk_level, action = 55.0, "MEDIUM", "2FA"
+    elif demo_mode_value == "🔴 HIGH — HOLD + TICKET":
+        risk_score, risk_level, action = 85.0, "HIGH", "HOLD"
+    else:
+        risk_score = ai_risk_score
+        if risk_score >= 70:
+            risk_level, action = "HIGH", "HOLD"
+        elif risk_score >= 40:
+            risk_level, action = "MEDIUM", "2FA"
+        else:
+            risk_level, action = "LOW", "ALLOW"
+
+    analysis_id = external_id or (
+        "TXN-" + now.strftime("%Y%m%d%H%M%S") + "-" + str(random.randint(100, 999))
+    )
+
+    return {
+        "analysis_id": analysis_id,
+        "risk": float(risk_score),
+        "model_probability": float(ai_risk_score),
+        "level": risk_level,
+        "action": action,
+        "amount": float(amount_value),
+        "merchant_risk": float(merchant_risk_value),
+        "ip_risk": float(ip_risk_value),
+        "failed_24h": int(failed_24h_value),
+        "amount_to_monthly_spend": float(amount_to_monthly_spend),
+        "failure_rate_24h": float(failure_rate_24h),
+        "velocity_ratio": float(velocity_ratio),
+        "payment_channel": str(payment_channel_value),
+        "device_type": str(device_type_value),
+        "international": "Yes" if int(international_value) else "No",
+        "geo_distance": float(geo_distance_value),
+        "amount_deviation": float(amount_deviation_value),
+        "source": source,
+        "event": event_name,
+        "time": now.strftime("%H:%M:%S"),
+        "datetime": now.strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+
+# ============================================================
+# RAZORPAY SANDBOX WEBHOOK SIMULATOR
+# ============================================================
+
 with st.sidebar.expander("🔌 Inject Razorpay Sandbox Webhook", expanded=False):
     sample_json = '''{
   "event": "payment.failed",
@@ -454,9 +514,93 @@ with st.sidebar.expander("🔌 Inject Razorpay Sandbox Webhook", expanded=False)
     }
   }
 }'''
-    st.text_area("Razorpay Event Payload (JSON)", value=sample_json, height=130)
-    if st.button("Simulate Razorpay Event"):
-        st.toast("Razorpay Sandbox Webhook Ingested!", icon="⚡")
+    webhook_json = st.text_area(
+        "Razorpay Event Payload (JSON)",
+        value=sample_json,
+        height=160,
+        key="razorpay_webhook_json"
+    )
+
+    if st.button("⚡ Simulate Razorpay Event", key="simulate_razorpay_event", use_container_width=True):
+        try:
+            webhook = json.loads(webhook_json)
+            event_name = webhook.get("event", "unknown")
+            entity = (
+                webhook.get("payload", {})
+                .get("payment", {})
+                .get("entity", {})
+            )
+
+            if not entity:
+                raise ValueError("No payment.entity object found in the Razorpay payload.")
+
+            razorpay_id = entity.get("id") or (
+                "pay_demo_" + datetime.now().strftime("%Y%m%d%H%M%S")
+            )
+
+            # Razorpay payment amount is represented in paise.
+            webhook_amount = float(entity.get("amount", amount * 100)) / 100.0
+            method = str(entity.get("method", payment_channel)).lower()
+            webhook_channel = {
+                "upi": "UPI",
+                "card": "CARD",
+                "wallet": "WALLET",
+                "netbanking": "NETBANKING"
+            }.get(method, payment_channel)
+
+            error_text = str(entity.get("error_description", ""))
+            is_failed_event = event_name == "payment.failed" or str(entity.get("status", "")).lower() == "failed"
+
+            sandbox_result = run_fraud_decision(
+                amount_value=webhook_amount,
+                payment_channel_value=webhook_channel,
+                device_type_value=device_type,
+                international_value=int(international == "Yes"),
+                merchant_risk_value=merchant_risk,
+                ip_risk_value=ip_risk,
+                txn_1h_value=txn_1h,
+                txn_24h_value=txn_24h,
+                failed_24h_value=max(failed_24h, 1 if is_failed_event else failed_24h),
+                geo_distance_value=geo_distance,
+                amount_deviation_value=max(amount_deviation, abs(webhook_amount - customer_avg_amount)),
+                customer_avg_amount_value=customer_avg_amount,
+                customer_txn_before_value=customer_txn_before,
+                customer_failed_rate_value=customer_failed_rate,
+                merchant_txn_before_value=merchant_txn_before,
+                merchant_avg_amount_value=merchant_avg_amount,
+                merchant_fraud_rate_value=merchant_fraud_rate,
+                post_auth_risk_value=post_auth_risk,
+                source="Razorpay Sandbox Webhook",
+                external_id=razorpay_id,
+                event_name=event_name,
+                demo_mode_value="🤖 AI Model"
+            )
+
+            sandbox_result["failure_reason"] = error_text or "Payment event received"
+            sandbox_result["razorpay_status"] = entity.get("status", "unknown")
+
+            st.session_state.last_result = sandbox_result
+            st.session_state.generated_otp = None
+            st.session_state.otp_expiry = None
+            st.session_state.otp_verified = False
+            st.session_state.otp_attempts = 0
+            st.session_state.ticket_details = None
+            st.session_state.recovery_result = None
+            st.session_state.retry_result = None
+            st.session_state.scheduled_retry = None
+            st.session_state.method_changed = False
+            st.session_state.pay_later_selected = False
+            st.session_state.sandbox_event = True
+            st.session_state.failed_payment = is_failed_event
+
+            st.success(f"✅ Razorpay {event_name} received → FraudShield decision engine executed.")
+            st.rerun()
+
+        except json.JSONDecodeError as exc:
+            st.error(f"❌ Invalid JSON: {exc}")
+        except Exception as exc:
+            st.error("❌ Razorpay webhook could not be processed.")
+            st.code(str(exc))
 
 # ============================================================
 # RISK STATISTICS & SOC DASHBOARD
@@ -512,73 +656,47 @@ if history_columns:
 # ============================================================
 
 if analyze:
-    now = datetime.now()
-    hour = now.hour
-    day = now.weekday()
-
-    international_value = int(international == "Yes")
-    amount_to_monthly_spend = amount / max(monthly_spend, 1)
-    failure_rate_24h = failed_24h / max(txn_24h, 1)
-    velocity_ratio = txn_1h / max(txn_24h, 1)
-    is_weekend = int(day >= 5)
-    is_night = int(hour < 6 or hour >= 22)
-
-    fraud_input = pd.DataFrame([{
-        "account_age_days": 1000, "credit_score_band": 3, "kyc_level": 2, "avg_monthly_spend": monthly_spend,
-        "merchant_risk_score": merchant_risk, "transaction_amount": amount, "payment_channel": payment_channel,
-        "device_type": device_type, "is_international": international_value, "ip_risk_score": ip_risk,
-        "txn_count_1h": txn_1h, "txn_count_24h": txn_24h, "failed_txn_count_24h": failed_24h,
-        "geo_distance_from_last_txn": geo_distance, "amount_deviation_from_user_mean": amount_deviation,
-        "post_auth_risk_score": post_auth_risk, "transaction_hour": hour, "day_of_week": day,
-        "is_weekend": is_weekend, "is_night": is_night, "amount_to_monthly_spend": amount_to_monthly_spend,
-        "failure_rate_24h": failure_rate_24h, "velocity_ratio": velocity_ratio, "customer_txn_count_before": customer_txn_before,
-        "customer_avg_amount_before": customer_avg_amount, "customer_failed_rate_before": customer_failed_rate,
-        "merchant_txn_count_before": merchant_txn_before, "merchant_avg_amount_before": merchant_avg_amount,
-        "merchant_fraud_rate_before": merchant_fraud_rate
-    }])
-
-    fraud_input = fraud_input.reindex(columns=fraud_features)
     try:
-        fraud_probability = float(fraud_model.predict_proba(fraud_input)[0, 1])
-    except Exception:
-        fraud_probability = 0.20
+        result = run_fraud_decision(
+            amount_value=amount,
+            payment_channel_value=payment_channel,
+            device_type_value=device_type,
+            international_value=int(international == "Yes"),
+            merchant_risk_value=merchant_risk,
+            ip_risk_value=ip_risk,
+            txn_1h_value=txn_1h,
+            txn_24h_value=txn_24h,
+            failed_24h_value=failed_24h,
+            geo_distance_value=geo_distance,
+            amount_deviation_value=amount_deviation,
+            customer_avg_amount_value=customer_avg_amount,
+            customer_txn_before_value=customer_txn_before,
+            customer_failed_rate_value=customer_failed_rate,
+            merchant_txn_before_value=merchant_txn_before,
+            merchant_avg_amount_value=merchant_avg_amount,
+            merchant_fraud_rate_value=merchant_fraud_rate,
+            post_auth_risk_value=post_auth_risk,
+            source="Payment Simulator",
+            demo_mode_value=demo_mode
+        )
 
-    ai_risk_score = fraud_probability * 100
+        st.session_state.generated_otp = None
+        st.session_state.otp_expiry = None
+        st.session_state.otp_verified = False
+        st.session_state.otp_attempts = 0
+        st.session_state.ticket_details = None
+        st.session_state.scheduled_retry = None
+        st.session_state.method_changed = False
+        st.session_state.pay_later_selected = False
+        st.session_state.failed_payment = False
+        st.session_state.recovery_result = None
+        st.session_state.retry_result = None
+        st.session_state.sandbox_event = False
+        st.session_state.last_result = result
 
-    if demo_mode == "🟢 LOW — ALLOW":
-        risk_score, risk_level, action = 20.0, "LOW", "ALLOW"
-    elif demo_mode == "🟠 MEDIUM — 2FA":
-        risk_score, risk_level, action = 55.0, "MEDIUM", "2FA"
-    elif demo_mode == "🔴 HIGH — HOLD + TICKET":
-        risk_score, risk_level, action = 85.0, "HIGH", "HOLD"
-    else:
-        risk_score = ai_risk_score
-        if risk_score >= 70:
-            risk_level, action = "HIGH", "HOLD"
-        elif risk_score >= 40:
-            risk_level, action = "MEDIUM", "2FA"
-        else:
-            risk_level, action = "LOW", "ALLOW"
-
-    st.session_state.generated_otp = None
-    st.session_state.otp_expiry = None
-    st.session_state.otp_verified = False
-    st.session_state.otp_attempts = 0
-    st.session_state.ticket_details = None
-    st.session_state.scheduled_retry = None
-    st.session_state.method_changed = False
-    st.session_state.pay_later_selected = False
-    st.session_state.recovery_result = None
-    st.session_state.retry_result = None
-
-    analysis_id = "TXN-" + now.strftime("%Y%m%d%H%M%S") + "-" + str(random.randint(100, 999))
-
-    st.session_state.last_result = {
-        "analysis_id": analysis_id, "risk": risk_score, "level": risk_level, "action": action,
-        "amount": amount, "merchant_risk": merchant_risk, "ip_risk": ip_risk, "failed_24h": failed_24h,
-        "amount_to_monthly_spend": amount_to_monthly_spend, "failure_rate_24h": failure_rate_24h,
-        "velocity_ratio": velocity_ratio, "time": now.strftime("%H:%M:%S"), "datetime": now.strftime("%Y-%m-%d %H:%M:%S")
-    }
+    except Exception as exc:
+        st.error("❌ FraudShield could not analyze this transaction.")
+        st.code(str(exc))
 
 # ============================================================
 # DISPLAY CURRENT RESULT
@@ -606,6 +724,54 @@ if result:
     m2.metric("Risk Level", f"{icon} {risk_level}")
     m3.metric("Payment Action", action)
     st.progress(int(min(max(risk_score, 0), 100)))
+
+    # ========================================================
+    # 🧠 LIVE DECISION ENGINE
+    # ========================================================
+    st.divider()
+    st.header("🧠 PayShield Decision Engine")
+    st.caption("Deterministic policy layer uses the FraudShield ML risk score to select the payment control.")
+
+    source_label = result.get("source", "Payment Simulator")
+    event_label = result.get("event") or "Manual payment analysis"
+
+    d1, d2, d3, d4 = st.columns(4)
+    d1.metric("1. PAYMENT", "RECEIVED")
+    d2.metric("2. FRAUDSHIELD", f"{risk_score:.1f}/100")
+    d3.metric("3. RISK BAND", f"{icon} {risk_level}")
+    d4.metric("4. DECISION", action)
+
+    if risk_level == "HIGH":
+        decision_text = "🔴 HIGH → HOLD + SECURITY TICKET"
+        decision_class = "red-card"
+    elif risk_level == "MEDIUM":
+        decision_text = "🟠 MEDIUM → 2FA VERIFICATION"
+        decision_class = "orange-card"
+    else:
+        decision_text = "🟢 LOW → ALLOW PAYMENT"
+        decision_class = "green-card"
+
+    st.markdown(
+        f'''<div class="card {decision_class}">
+        <h2>{decision_text}</h2>
+        <p><b>Source:</b> {source_label}</p>
+        <p><b>Transaction ID:</b> {result.get("analysis_id", "N/A")}</p>
+        <p><b>FraudShield model probability:</b> {result.get("model_probability", risk_score):.2f}%</p>
+        <p><b>Policy thresholds:</b> 0–39 LOW/ALLOW &nbsp;•&nbsp; 40–69 MEDIUM/2FA &nbsp;•&nbsp; 70–100 HIGH/HOLD</p>
+        <p><b>Next control:</b> {action if action != "HOLD" else "HOLD + SECURITY TICKET"}</p>
+        </div>''',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'''<div class="info-panel">
+        🟦 <b>{event_label}</b> &nbsp;→&nbsp; 🛡️ <b>FraudShield ML</b> &nbsp;→&nbsp; 📊 <b>{risk_score:.2f}</b> &nbsp;→&nbsp; {icon} <b>{risk_level}</b> &nbsp;→&nbsp; <b>{action}</b>
+        </div>''',
+        unsafe_allow_html=True
+    )
+
+    if result.get("event") == "payment.failed":
+        st.warning("❌ Razorpay payment.failed event detected. Continue to PayRecover AI below for recovery analysis and Smart Retry.")
 
     if risk_level == "HIGH":
         st.markdown(f'<div class="card red-card"><h2>🔴 HIGH-RISK PAYMENT</h2><p>Payment has been placed on HOLD.</p><p><b>Transaction ID:</b> {result["analysis_id"]}</p><p><b>Risk Score:</b> {risk_score:.2f}%</p><p><b>Action:</b> HOLD + SECURITY REVIEW</p></div>', unsafe_allow_html=True)
@@ -662,6 +828,7 @@ if result:
     elif risk_level == "HIGH":
         st.error("🔴 HIGH RISK — PAYMENT UNDER REVIEW")
         
+        # PaymentOps Autonomous LLM Briefing
         st.markdown("### 🤖 PaymentOps Agent Incident Briefing")
         agent_brief = generate_agentic_ticket({
             "amount": amount,
@@ -747,7 +914,7 @@ if failed_payment:
     try:
         recovery_probability = float(recovery_model.predict_proba(recovery_input)[0, 1]) * 100
     except Exception:
-        recovery_probability = 65.00
+        recovery_probability = 0.0
 
     st.subheader("💰 Recovery Probability")
     rc1, rc2 = st.columns(2)
@@ -767,7 +934,7 @@ if failed_payment:
         try:
             probabilities.append(float(retry_model.predict_proba(r_inp)[0, 1]) * 100)
         except Exception:
-            probabilities.append(70.00)
+            probabilities.append(0.0)
 
     best_index = int(np.argmax(probabilities)) if probabilities else 0
     best_time = retry_times[best_index]
