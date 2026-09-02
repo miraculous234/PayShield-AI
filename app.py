@@ -276,7 +276,7 @@ CURRENT PAYSHIELD CONTEXT:
 MERCHANT QUESTION:
 {question}
 Give a concise, useful answer with the relevant risk/recovery reasoning."""
-        response = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"), contents=prompt)
+        response = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"), contents=prompt)
         return response.text or "I could not generate an answer."
     except Exception as exc:
         return f"Gemini assistant error: {exc}"
