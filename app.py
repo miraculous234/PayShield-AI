@@ -1,6 +1,7 @@
 import os
 import json
 import random
+import io
 from datetime import datetime, timedelta
 
 import joblib
@@ -13,20 +14,6 @@ try:
     from google import genai
 except ImportError:
     genai = None
-
-# Flexible imports for LangChain compatibility
-try:
-    from langchain_groq import ChatGroq
-except ImportError:
-    ChatGroq = None
-
-try:
-    from langchain_core.prompts import PromptTemplate
-except ImportError:
-    try:
-        from langchain.prompts import PromptTemplate
-    except ImportError:
-        PromptTemplate = None
 
 # ============================================================
 # PAGE CONFIG
@@ -215,50 +202,52 @@ with col4:
 st.divider()
 
 # ============================================================
-# GROQ PAYMENTOPS AGENT FUNCTION
+# GEMINI PAYMENTOPS AGENT FUNCTION
 # ============================================================
 
 def generate_agentic_ticket(payload_data, risk_score):
+    """Generate a concise PaymentOps security brief using Gemini.
+
+    Gemini explains the ML decision; it does not make the payment decision.
+    """
+    fallback = (
+        "• **Threat Classification**: High-Risk transaction requiring security review\n"
+        "• **Behavioral Anomaly**: Transaction signals exceed the configured risk threshold.\n"
+        "• **Recommended Mitigation**: Hold funds, generate a Security Ticket, and require additional verification.\n"
+    )
     try:
-        api_key = st.secrets.get("GROQ_API_KEY") or os.getenv("GROQ_API_KEY")
-        if not api_key or ChatGroq is None or PromptTemplate is None:
-            return (
-                "• **Threat Classification**: High-Risk Velocity & Deviation Anomaly\n"
-                "• **Behavioral Anomaly**: Transaction amount deviated significantly from user mean.\n"
-                "• **Recommended Mitigation**: Hold funds, generate Security Ticket, require 2FA re-verification."
-            )
-        
-        llm = ChatGroq(temperature=0.1, model_name="llama-3.3-70b-versatile", groq_api_key=api_key)
-        
-        prompt = PromptTemplate.from_template("""
-        You are PaymentOps AI, an autonomous fraud analyst. Write a concise, structured security brief for a flagged transaction:
-        
-        Transaction Amount: ₹{amount}
-        Risk Score: {risk_score}/100
-        Transactions in 1hr: {txns_1h}
-        Geo Distance Spike: {geo_dist} km
-        Amount Deviation: ₹{amt_dev}
-        
-        Provide response in 3 bullet points:
-        - **Threat Classification**:
-        - **Behavioral Anomaly**:
-        - **Recommended Mitigation**:
-        """)
-        chain = prompt | llm
-        response = chain.invoke({
-            "amount": payload_data.get("amount", 2500),
-            "risk_score": risk_score,
-            "txns_1h": payload_data.get("txns_1h", 2),
-            "geo_dist": payload_data.get("geo_dist", 10.0),
-            "amt_dev": payload_data.get("amt_dev", 500.0)
-        })
-        return response.content
-    except Exception:
-        return (
-            "• **Threat Classification**: High-Risk Velocity & Deviation Anomaly\n"
-            "• **Behavioral Anomaly**: Transaction amount deviated significantly from user mean.\n"
-            "• **Recommended Mitigation**: Hold funds, generate Security Ticket, require 2FA re-verification."
+        api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key or genai is None:
+            return fallback
+
+        client = genai.Client(api_key=api_key)
+        prompt = f"""
+You are PaymentOps AI for PayShield AI, a payment-security operations assistant.
+The FraudShield ML model has already made the numerical risk decision.
+You must explain the incident, not override the ML decision.
+
+Transaction details:
+- Transaction amount: ₹{payload_data.get('amount', 2500)}
+- FraudShield risk score: {risk_score}/100
+- Transactions in 1 hour: {payload_data.get('txns_1h', 2)}
+- Geo distance from previous transaction: {payload_data.get('geo_dist', 10.0)} km
+- Amount deviation from customer mean: ₹{payload_data.get('amt_dev', 500.0)}
+
+Write a concise security brief with exactly these three bullets:
+- **Threat Classification**: identify the likely risk pattern.
+- **Behavioral Anomaly**: explain the strongest evidence.
+- **Recommended Mitigation**: give a practical merchant/security action consistent with a HOLD decision.
+
+Do not claim certainty about fraud. Do not invent facts.
+"""
+        response = client.models.generate_content(
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
+            contents=prompt
         )
+        text = getattr(response, "text", None)
+        return text.strip() if text else fallback
+    except Exception:
+        return fallback
 
 # ============================================================
 # GEMINI AI ASSISTANT
