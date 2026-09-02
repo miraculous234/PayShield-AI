@@ -2,14 +2,14 @@ import os
 import json
 import random
 import io
-import wave
-import time
+import json as _json_for_voice
 from datetime import datetime, timedelta
 
 import joblib
 import numpy as np
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import streamlit_authenticator as stauth
 
 try:
@@ -124,7 +124,9 @@ DEFAULTS = {
     "revenue_recovered_val": 58900.00,
     "gemini_chat": [],
     "sound_enabled": True,
-    "last_sound_id": None
+    "last_sound_id": None,
+    "welcome_seen": False,
+    "welcome_faq_answer": None
 }
 
 for key, value in DEFAULTS.items():
@@ -176,10 +178,191 @@ hr { margin: 25px 0; }
 .hero-grid{display:grid;grid-template-columns:1.5fr .8fr;gap:20px;align-items:center}.hero-kicker{color:#7dd3fc;font-size:12px;font-weight:900;letter-spacing:2px}.hero-title{font-size:clamp(34px,4vw,58px);line-height:1.02;font-weight:950;margin:8px 0}.hero-copy{color:#aeb7c7;font-size:16px;line-height:1.55}.hero-chip{display:inline-block;padding:7px 11px;margin:8px 6px 0 0;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);font-size:12px;font-weight:800}.hero-art{min-height:190px;display:flex;align-items:center;justify-content:center}.shield-orbit{width:160px;height:160px;border:1px solid rgba(125,211,252,.35);border-radius:50%;position:relative;animation:spin 16s linear infinite}.shield-core{position:absolute;inset:32px;border-radius:28px;display:flex;align-items:center;justify-content:center;font-size:54px;background:linear-gradient(145deg,rgba(79,140,255,.25),rgba(33,195,84,.12));border:1px solid rgba(125,211,252,.4);box-shadow:0 0 40px rgba(79,140,255,.2)}.scan-line{position:absolute;left:8%;right:8%;top:50%;height:2px;background:#7dd3fc;box-shadow:0 0 18px #7dd3fc;animation:scan 2.8s ease-in-out infinite}.nav-bar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.nav-pill{padding:8px 13px;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);font-size:12px;font-weight:800;text-decoration:none;color:inherit}.nav-pill:hover{background:rgba(79,140,255,.16);border-color:rgba(79,140,255,.45)}.chat-card{padding:18px;border-radius:18px;border:1px solid rgba(125,211,252,.2);background:linear-gradient(145deg,rgba(79,140,255,.09),rgba(255,255,255,.025))}@keyframes spin{to{transform:rotate(360deg)}}@keyframes scan{0%,100%{transform:translateY(-55px);opacity:.25}50%{transform:translateY(55px);opacity:1}}
 
 @media (max-width: 768px) { .title { font-size: 34px; } .subtitle { font-size: 14px; } }
+
+.welcome-box {
+    padding: 8px 2px 4px 2px;
+}
+.welcome-card {
+    padding: 18px; border-radius: 16px; margin: 8px 0;
+    border: 1px solid rgba(125,211,252,.20);
+    background: linear-gradient(145deg, rgba(79,140,255,.10), rgba(255,255,255,.025));
+}
+.welcome-mini {
+    padding: 13px 15px; border-radius: 13px; margin: 7px 0;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08);
+}
+.welcome-faq {
+    padding: 14px; border-radius: 14px;
+    background: rgba(125,211,252,.06); border: 1px solid rgba(125,211,252,.18);
+}
 </style>
 """,
     unsafe_allow_html=True
 )
+
+# ============================================================
+# WELCOME POPUP — PAYSHIELD INTRODUCTION + FAQ + AI VOICE
+# ============================================================
+
+WELCOME_FAQS = {
+    "What is payment fraud?": "Payment fraud is an unauthorized or deceptive payment attempt. It can involve unusual transaction behaviour, compromised accounts, risky devices, suspicious IP activity, abnormal transaction amounts, or unusual payment velocity.",
+    "How does PayShield detect fraud?": "FraudShield AI evaluates transaction and behavioural signals and produces a risk score. PayShield then applies the security policy: LOW → ALLOW, MEDIUM → 2FA, and HIGH → HOLD + SECURITY TICKET.",
+    "Why was a payment blocked?": "A payment is placed on hold when its FraudShield risk score reaches the configured high-risk threshold. The system can create a security ticket so the merchant or analyst can review the transaction.",
+    "What is 2FA?": "2FA adds an extra verification step for medium-risk payments. The customer must enter a one-time password before the payment can be approved.",
+    "How does PayRecover work?": "PayRecover AI analyzes a failed payment and estimates the probability that it can be recovered, helping the merchant choose an appropriate recovery action.",
+    "What is Smart Retry?": "Smart Retry compares different retry windows and identifies the time with the strongest predicted payment-success probability. It can also support payment-method optimization when available.",
+    "Why use PayShield AI?": "PayShield combines fraud prevention and revenue recovery in one system. It helps reduce fraudulent approvals, adds verification for uncertain transactions, protects legitimate payments from unnecessary friction, and improves recovery of failed payments."
+}
+
+WELCOME_VOICE_TEXT = (
+    "Welcome to PayShield AI. Payment fraud happens when an unauthorized or deceptive "
+    "payment attempt is made using suspicious behaviour, compromised accounts, risky devices, "
+    "or unusual transaction patterns. PayShield uses FraudShield AI to evaluate payment signals "
+    "and calculate a risk score. Low-risk payments are allowed, medium-risk payments require "
+    "two-factor authentication, and high-risk payments are held for security review. "
+    "PayShield also helps recover failed payments through PayRecover AI and Smart Retry. "
+    "The goal is simple: prevent fraud, protect revenue, and help merchants make safer payment decisions."
+)
+
+
+def welcome_faq_answer(question):
+    """Answer the popup's common questions without depending on an external API."""
+    if not question:
+        return "Choose a question above or ask about fraud, FraudShield, 2FA, PayRecover, Smart Retry, or PayShield."
+
+    q = question.strip().lower()
+    for title, answer in WELCOME_FAQS.items():
+        if q == title.lower():
+            return answer
+
+    keyword_groups = [
+        (("fraud", "scam", "unauthorized"), WELCOME_FAQS["What is payment fraud?"]),
+        (("detect", "fraudshield", "risk score", "score"), WELCOME_FAQS["How does PayShield detect fraud?"]),
+        (("blocked", "hold", "declined", "flagged"), WELCOME_FAQS["Why was a payment blocked?"]),
+        (("2fa", "otp", "verification", "verify"), WELCOME_FAQS["What is 2FA?"]),
+        (("recover", "failed payment", "payrecover"), WELCOME_FAQS["How does PayRecover work?"]),
+        (("retry", "smart retry", "retry time", "retry window"), WELCOME_FAQS["What is Smart Retry?"]),
+        (("why payshield", "why use", "benefit", "purpose"), WELCOME_FAQS["Why use PayShield AI?"]),
+    ]
+    for keywords, answer in keyword_groups:
+        if any(k in q for k in keywords):
+            return answer
+    return "I can help with payment fraud, FraudShield risk scores, 2FA, PayRecover, Smart Retry, and why merchants use PayShield AI. Try one of the FAQ questions above."
+
+
+def show_welcome_content():
+    st.markdown('<div class="welcome-box">', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="welcome-card"><h2>🛡️ Welcome to PayShield AI</h2>'
+        '<p>AI-powered payment protection designed to prevent fraud, verify risky payments, '
+        'and recover failed revenue.</p></div>',
+        unsafe_allow_html=True
+    )
+
+    w1, w2 = st.columns(2)
+    with w1:
+        st.markdown(
+            '<div class="welcome-mini"><b>🚨 What is payment fraud?</b><br>'
+            'Unauthorized or deceptive payment activity that can cause financial loss, '
+            'chargebacks, and customer trust issues.</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            '<div class="welcome-mini"><b>🎯 Why use PayShield?</b><br>'
+            'It combines fraud detection, customer verification, payment recovery, and '
+            'smart retry decisions in one merchant security platform.</div>',
+            unsafe_allow_html=True
+        )
+    with w2:
+        st.markdown(
+            '<div class="welcome-mini"><b>🧠 How does it prevent fraud?</b><br>'
+            'FraudShield produces a risk score and applies three actions: '
+            '<b>LOW → ALLOW</b>, <b>MEDIUM → 2FA</b>, and <b>HIGH → HOLD + TICKET</b>.</div>',
+            unsafe_allow_html=True
+        )
+        st.markdown(
+            '<div class="welcome-mini"><b>💰 What happens after a failed payment?</b><br>'
+            'PayRecover estimates recovery probability and Smart Retry evaluates retry timing '
+            'and available payment methods.</div>',
+            unsafe_allow_html=True
+        )
+
+    st.divider()
+    st.subheader("💬 PayShield FAQ Assistant")
+    st.caption("Ask a common question or type your own question about the platform.")
+
+    faq_choice = st.selectbox(
+        "Quick FAQ",
+        ["Select a question..."] + list(WELCOME_FAQS.keys()),
+        key="welcome_faq_choice"
+    )
+    custom_question = st.text_input(
+        "Or ask your own question",
+        placeholder="Why should a merchant use PayShield AI?",
+        key="welcome_custom_question"
+    )
+
+    if st.button("💬 Ask PayShield FAQ", key="welcome_faq_button", use_container_width=True):
+        selected = custom_question.strip() if custom_question.strip() else (
+            faq_choice if faq_choice != "Select a question..." else ""
+        )
+        st.session_state.welcome_faq_answer = welcome_faq_answer(selected)
+
+    if st.session_state.get("welcome_faq_answer"):
+        st.markdown('<div class="welcome-faq">', unsafe_allow_html=True)
+        st.markdown("**🤖 PayShield AI:**")
+        st.write(st.session_state.welcome_faq_answer)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
+    st.subheader("🎙️ AI Voice Introduction")
+    st.caption("Press Play to hear a spoken introduction. It uses your browser's built-in voice and does not require another API.")
+
+    voice_js_text = json.dumps(WELCOME_VOICE_TEXT)
+    components.html(
+        f"""
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button onclick="speakPayShield()" style="padding:11px 18px;border-radius:10px;border:1px solid #4f8cff;background:#1f5eff;color:white;font-weight:700;cursor:pointer;">▶ Play AI Voice</button>
+            <button onclick="stopPayShield()" style="padding:11px 18px;border-radius:10px;border:1px solid #777;background:#222;color:white;font-weight:700;cursor:pointer;">⏹ Stop</button>
+        </div>
+        <script>
+        const payShieldVoiceText = {voice_js_text};
+        function speakPayShield() {{
+            if (!('speechSynthesis' in window)) {{
+                alert('Speech is not supported by this browser.');
+                return;
+            }}
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(payShieldVoiceText);
+            utterance.rate = 0.94;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+            window.speechSynthesis.speak(utterance);
+        }}
+        function stopPayShield() {{
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }}
+        </script>
+        """,
+        height=70,
+    )
+
+    st.divider()
+    if st.button("🚀 Enter PayShield AI Dashboard", key="welcome_enter", type="primary", use_container_width=True):
+        st.session_state.welcome_seen = True
+        st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+
+if not st.session_state.get("welcome_seen", False):
+    if hasattr(st, "dialog"):
+        @st.dialog("🛡️ Welcome to PayShield AI", width="large")
+        def _payshield_welcome_dialog():
+            show_welcome_content()
+        _payshield_welcome_dialog()
+    else:
+        with st.expander("🛡️ Welcome to PayShield AI", expanded=True):
+            show_welcome_content()
 
 # ============================================================
 # HEADER & ROI KPI DASHBOARD
@@ -243,7 +426,7 @@ Write a concise security brief with exactly these three bullets:
 Do not claim certainty about fraud. Do not invent facts.
 """
         response = client.models.generate_content(
-            model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
+            model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"),
             contents=prompt
         )
         text = getattr(response, "text", None)
@@ -278,7 +461,7 @@ CURRENT PAYSHIELD CONTEXT:
 MERCHANT QUESTION:
 {question}
 Give a concise, useful answer with the relevant risk/recovery reasoning."""
-        response = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"), contents=prompt)
+        response = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"), contents=prompt)
         return response.text or "I could not generate an answer."
     except Exception as exc:
         return f"Gemini assistant error: {exc}"
