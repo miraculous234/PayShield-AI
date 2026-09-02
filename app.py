@@ -2,6 +2,7 @@ import os
 import json
 import random
 import io
+import wave
 from datetime import datetime, timedelta
 
 import joblib
