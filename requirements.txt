@@ -3,6 +3,8 @@ joblib
 numpy<2.0.0
 pandas
 scikit-learn==1.5.2
+xgboost
 streamlit-authenticator==0.2.3
 bcrypt
-xgboost
+langchain-groq
+langchain-core
