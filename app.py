@@ -942,387 +942,266 @@ if failed_payment:
     st.success(f"⭐ PayRecover AI recommends retrying after {best_time} minutes with {best_probability:.2f}% predicted success.")
 
 # ============================================================
-# PAYMENTOPS AI — INCIDENT ANALYSIS
+# 🤖 PAYMENTOPS AI — INCIDENT ANALYSIS
 # ============================================================
 
 st.divider()
 st.header("🤖 PaymentOps AI — Incident Analysis")
+st.caption(
+    "AI-powered incident interpretation for fraud decisions, "
+    "business impact, and recommended merchant action."
+)
 
 result = st.session_state.get("last_result", {})
 
-if result:
+# ------------------------------------------------------------
+# GET RISK SCORE
+# ------------------------------------------------------------
 
-    # ========================================================
-    # FRAUD / RISK SCORE
-    # ========================================================
+risk_score = (
+    result.get("risk_score")
+    or result.get("fraud_score")
+    or result.get("fraud_probability")
+    or result.get("fraud_prob")
+    or result.get("model_probability")
+    or result.get("probability")
+)
 
-    fraud_probability = None
+if risk_score is None:
+    risk_score = 0
 
-    # Try to get the actual FraudShield value
-    for key in [
-        "fraud_probability",
-        "fraud_prob",
-        "fraud_score",
-        "risk_score",
-        "model_probability",
-        "probability"
-    ]:
+risk_score = float(risk_score)
 
-        value = result.get(key)
+# Convert probability 0–1 into score 0–100 if required
+if risk_score <= 1:
+    risk_score *= 100
 
-        if value is not None:
-            try:
-                fraud_probability = float(value)
-                break
-            except:
-                pass
+# ------------------------------------------------------------
+# RISK LEVEL
+# ------------------------------------------------------------
 
-    # If not found inside last_result, check session state
-    if fraud_probability is None:
+if risk_score >= 70:
+    risk_level = "HIGH"
+elif risk_score >= 40:
+    risk_level = "MEDIUM"
+else:
+    risk_level = "LOW"
 
-        for key in [
-            "fraud_probability",
-            "fraud_prob",
-            "fraud_score",
-            "risk_score"
-        ]:
+# ------------------------------------------------------------
+# DECISION
+# ------------------------------------------------------------
 
-            value = st.session_state.get(key)
+decision = result.get("decision")
 
-            if value is not None:
-                try:
-                    fraud_probability = float(value)
-                    break
-                except:
-                    pass
-
-    if fraud_probability is None:
-        fraud_probability = 0.0
-
-    # Convert 0–1 probability to 0–100 score
-    if fraud_probability <= 1:
-        fraud_percentage = fraud_probability * 100
-    else:
-        fraud_percentage = fraud_probability
-
-    # ========================================================
-    # TRANSACTION AMOUNT
-    # ========================================================
-
-    amount = (
-        result.get("amount")
-        or result.get("transaction_amount")
-        or result.get("amount_inr")
-        or st.session_state.get("amount")
-        or 0
-    )
-
-    try:
-        amount = float(amount)
-    except:
-        amount = 0.0
-
-    # ========================================================
-    # TRANSACTION ID
-    # ========================================================
-
-    transaction_id = (
-        result.get("transaction_id")
-        or result.get("payment_id")
-        or result.get("id")
-        or st.session_state.get("transaction_id")
-        or st.session_state.get("current_transaction_id")
-        or st.session_state.get("payment_id")
-        or "N/A"
-    )
-
-    # ========================================================
-    # PAYMENT STATUS
-    # ========================================================
-
-    payment_status = (
-        result.get("payment_status")
-        or result.get("status")
-        or st.session_state.get("payment_status")
-        or "Analyzed"
-    )
-
-    # ========================================================
-    # RISK / DECISION
-    # ========================================================
-
-    # Use existing Decision Engine values if available
-    existing_risk = (
-        result.get("risk_level")
-        or result.get("risk")
-        or result.get("risk_band")
-        or st.session_state.get("risk_level")
-    )
-
-    existing_decision = (
-        result.get("decision")
-        or result.get("action")
-        or st.session_state.get("decision")
-    )
-
-    # If existing values are available, use them.
-    # Otherwise derive them from the FraudShield score.
-    if existing_risk:
-        risk_level = str(existing_risk).upper()
-    elif fraud_percentage >= 70:
-        risk_level = "HIGH"
-    elif fraud_percentage >= 40:
-        risk_level = "MEDIUM"
-    else:
-        risk_level = "LOW"
-
-    if existing_decision:
-        decision = str(existing_decision).upper()
-    elif risk_level == "HIGH":
+if not decision:
+    if risk_level == "HIGH":
         decision = "HOLD"
     elif risk_level == "MEDIUM":
         decision = "2FA"
     else:
         decision = "ALLOW"
 
-    # ========================================================
-    # PAYMENTOPS INTELLIGENCE
-    # ========================================================
+# ------------------------------------------------------------
+# TRANSACTION ID
+# ------------------------------------------------------------
 
-    if risk_level == "HIGH":
+transaction_id = (
+    result.get("transaction_id")
+    or result.get("payment_id")
+    or result.get("id")
+    or st.session_state.get("transaction_id")
+    or st.session_state.get("current_transaction_id")
+    or st.session_state.get("payment_id")
+    or "TXN-DEMO-001"
+)
 
-        problem = (
-            "The transaction has been identified as HIGH risk. "
-            "FraudShield detected a risk score above the "
-            "automatic processing threshold."
-        )
+# ------------------------------------------------------------
+# AMOUNT
+# ------------------------------------------------------------
 
-        why = [
-            f"FraudShield risk score: {fraud_percentage:.2f}/100",
-            f"Transaction amount: ₹{amount:,.2f}",
-            "Risk score is above the 70/100 HIGH-risk threshold",
-            "Automatic payment processing is considered unsafe"
-        ]
+amount = (
+    result.get("amount")
+    or result.get("transaction_amount")
+    or st.session_state.get("transaction_amount")
+    or 0
+)
 
-        impact = (
-            "Processing this transaction without additional "
-            "verification could expose the merchant to potential "
-            "fraud or financial loss."
-        )
+try:
+    amount = float(amount)
+except:
+    amount = 0.0
 
-        recommended_action = (
-            "HOLD PAYMENT → RAISE SECURITY TICKET → "
-            "VERIFY CUSTOMER"
-        )
+# ------------------------------------------------------------
+# PAYMENT STATUS
+# ------------------------------------------------------------
 
-        assessment = (
-            f"PaymentOps identified this as a high-risk incident "
-            f"with a FraudShield score of {fraud_percentage:.2f}/100. "
-            "The appropriate operational response is to hold "
-            "the payment rather than allow it."
-        )
+payment_status = (
+    result.get("payment_status")
+    or result.get("status")
+    or "Under Security Review"
+)
 
-        operations_status = "SECURITY REVIEW"
-        next_step = "HOLD"
+# ------------------------------------------------------------
+# INCIDENT SUMMARY
+# ------------------------------------------------------------
 
-    elif risk_level == "MEDIUM":
+st.subheader("📋 Incident Summary")
 
-        problem = (
-            "The transaction contains moderate-risk indicators "
-            "and requires additional customer verification."
-        )
+c1, c2, c3, c4 = st.columns(4)
 
-        why = [
-            f"FraudShield risk score: {fraud_percentage:.2f}/100",
-            f"Transaction amount: ₹{amount:,.2f}",
-            "Risk score falls within the 40–69 medium-risk range",
-            "Additional authentication is required"
-        ]
-
-        impact = (
-            "The payment may be legitimate, but processing it "
-            "without verification could increase fraud exposure."
-        )
-
-        recommended_action = (
-            "TRIGGER 2FA → VERIFY CUSTOMER → "
-            "ALLOW IF VERIFIED"
-        )
-
-        assessment = (
-            f"PaymentOps identified a medium-risk transaction "
-            f"with a FraudShield score of {fraud_percentage:.2f}/100. "
-            "Additional authentication should be completed before "
-            "the payment is allowed."
-        )
-
-        operations_status = "2FA VERIFICATION"
-        next_step = "2FA"
-
-    else:
-
-        problem = (
-            "No significant fraud indicators were detected "
-            "in the analyzed transaction."
-        )
-
-        why = [
-            f"FraudShield risk score: {fraud_percentage:.2f}/100",
-            f"Transaction amount: ₹{amount:,.2f}",
-            "Risk score is below the 40/100 medium-risk threshold",
-            "No additional security intervention is required"
-        ]
-
-        impact = (
-            "The transaction currently presents low expected "
-            "fraud exposure and can proceed normally."
-        )
-
-        recommended_action = (
-            "ALLOW PAYMENT → CONTINUE NORMAL PROCESSING"
-        )
-
-        assessment = (
-            f"PaymentOps identified a low-risk transaction with "
-            f"a FraudShield score of {fraud_percentage:.2f}/100. "
-            "Normal payment processing can continue."
-        )
-
-        operations_status = "MONITORING"
-        next_step = "ALLOW"
-
-    # ========================================================
-    # INCIDENT SUMMARY
-    # ========================================================
-
-    st.subheader("📋 Incident Summary")
-
-    c1, c2, c3, c4 = st.columns(4)
-
-    c1.metric(
+with c1:
+    st.metric(
         "Transaction",
-        str(transaction_id)[:24]
+        str(transaction_id)
     )
 
-    c2.metric(
+with c2:
+    st.metric(
         "Amount",
         f"₹{amount:,.2f}"
     )
 
-    c3.metric(
+with c3:
+    st.metric(
         "Risk Level",
         risk_level
     )
 
-    c4.metric(
+with c4:
+    st.metric(
         "Decision",
         decision
     )
 
-    st.divider()
+# ------------------------------------------------------------
+# BUSINESS IMPACT
+# ------------------------------------------------------------
 
-    # ========================================================
-    # PROBLEM DETECTED
-    # ========================================================
+st.subheader("📊 Business Impact")
 
-    st.subheader("🚨 Problem Detected")
+if risk_level == "HIGH":
 
-    if risk_level == "HIGH":
-        st.error(problem)
-
-    elif risk_level == "MEDIUM":
-        st.warning(problem)
-
-    else:
-        st.success(problem)
-
-    # ========================================================
-    # WHY DID THIS HAPPEN?
-    # ========================================================
-
-    st.subheader("🔍 Why did this happen?")
-
-    for item in why:
-        st.write(f"• {item}")
-
-    # ========================================================
-    # BUSINESS IMPACT
-    # ========================================================
-
-    st.subheader("📊 Business Impact")
-
-    st.info(impact)
-
-    # ========================================================
-    # RECOMMENDED ACTION
-    # ========================================================
-
-    st.subheader("🎯 Recommended Action")
-
-    if risk_level == "HIGH":
-
-        st.error(
-            f"### 🔴 {recommended_action}"
-        )
-
-    elif risk_level == "MEDIUM":
-
-        st.warning(
-            f"### 🟠 {recommended_action}"
-        )
-
-    else:
-
-        st.success(
-            f"### 🟢 {recommended_action}"
-        )
-
-    # ========================================================
-    # AI ASSESSMENT
-    # ========================================================
-
-    st.subheader("🧠 PaymentOps AI Assessment")
-
-    st.write(assessment)
-
-    # ========================================================
-    # OPERATIONS STATUS
-    # ========================================================
-
-    st.divider()
-
-    st.subheader("⚙️ Operations Status")
-
-    s1, s2, s3 = st.columns(3)
-
-    s1.metric(
-        "FraudShield",
-        f"{fraud_percentage:.2f}/100"
+    business_impact = (
+        f"The transaction has a high fraud-risk score of "
+        f"{risk_score:.2f}/100. Payment processing has been "
+        f"stopped to prevent potential financial loss."
     )
 
-    s2.metric(
-        "PaymentOps",
-        operations_status
-    )
+elif risk_level == "MEDIUM":
 
-    s3.metric(
-        "Next Step",
-        next_step
+    business_impact = (
+        f"The transaction has a medium fraud-risk score of "
+        f"{risk_score:.2f}/100. Additional customer verification "
+        f"is required before payment completion."
     )
 
 else:
 
-    st.info(
-        "No payment incident available. "
-        "Analyze a transaction or inject a Razorpay Sandbox "
-        "webhook to generate a PaymentOps AI analysis."
+    business_impact = (
+        f"The transaction has a low fraud-risk score of "
+        f"{risk_score:.2f}/100 and can proceed under normal "
+        f"processing controls."
     )
 
-# ============================================================
-# FOOTER
-# ============================================================
+st.info(business_impact)
 
-st.caption(
-    "🛡️ PayShield AI • PaymentOps converts FraudShield "
-    "risk signals into actionable merchant intelligence."
-)
+# ------------------------------------------------------------
+# RECOMMENDED ACTION
+# ------------------------------------------------------------
+
+st.subheader("🎯 Recommended Action")
+
+if risk_level == "HIGH":
+
+    st.error(
+        "🔴 HOLD PAYMENT → SECURITY REVIEW"
+    )
+
+    st.write(
+        f"FraudShield detected a high-risk transaction "
+        f"({risk_score:.2f}/100). Keep the payment on hold, "
+        f"review the transaction signals, and raise a security "
+        f"ticket if required."
+    )
+
+elif risk_level == "MEDIUM":
+
+    st.warning(
+        "🟠 REQUIRE 2FA → VERIFY CUSTOMER"
+    )
+
+    st.write(
+        f"The transaction has a medium risk score "
+        f"({risk_score:.2f}/100). Require additional "
+        f"authentication before allowing payment."
+    )
+
+else:
+
+    st.success(
+        "🟢 ALLOW PAYMENT → CONTINUE NORMAL PROCESSING"
+    )
+
+    st.write(
+        f"The transaction has a low risk score "
+        f"({risk_score:.2f}/100). Continue normal payment "
+        f"processing."
+    )
+
+# ------------------------------------------------------------
+# PAYMENTOPS AI ASSESSMENT
+# ------------------------------------------------------------
+
+st.subheader("🧠 PaymentOps AI Assessment")
+
+if risk_level == "HIGH":
+
+    st.write(
+        f"PaymentOps classified this incident as HIGH severity. "
+        f"The FraudShield score is {risk_score:.2f}/100, which "
+        f"exceeds the high-risk threshold of 70. The correct "
+        f"operational response is to HOLD the transaction and "
+        f"perform a security review."
+    )
+
+elif risk_level == "MEDIUM":
+
+    st.write(
+        f"PaymentOps classified this incident as MEDIUM severity. "
+        f"The FraudShield score is {risk_score:.2f}/100, so the "
+        f"customer should complete additional authentication "
+        f"before payment authorization."
+    )
+
+else:
+
+    st.write(
+        f"PaymentOps classified this incident as LOW severity. "
+        f"The FraudShield score is {risk_score:.2f}/100, which "
+        f"is below the medium-risk threshold. Normal processing "
+        f"can continue."
+    )
+
+# ------------------------------------------------------------
+# OPERATIONS STATUS
+# ------------------------------------------------------------
+
+st.subheader("⚙️ Operations Status")
+
+if risk_level == "HIGH":
+
+    st.error(
+        "🔴 SECURITY REVIEW REQUIRED"
+    )
+
+elif risk_level == "MEDIUM":
+
+    st.warning(
+        "🟠 CUSTOMER VERIFICATION REQUIRED"
+    )
+
+else:
+
+    st.success(
+        "🟢 NORMAL PAYMENT PROCESSING"
+    )
