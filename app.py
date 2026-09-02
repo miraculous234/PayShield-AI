@@ -942,287 +942,197 @@ if failed_payment:
     st.success(f"⭐ PayRecover AI recommends retrying after {best_time} minutes with {best_probability:.2f}% predicted success.")
 
 # ============================================================
-# PAYMENTOPS AI — MERCHANT INTELLIGENCE
+# PAYMENTOPS AI — INCIDENT ANALYSIS
 # ============================================================
 
 st.divider()
-st.header("🤖 PaymentOps AI — Merchant Intelligence")
+st.header("🤖 PaymentOps AI — Incident Analysis")
 
-st.caption(
-    "PaymentOps explains what happened, why the system reacted, "
-    "and what the merchant should do next."
-)
+result = st.session_state.get("last_result")
 
-# ------------------------------------------------------------
-# Get latest payment case
-# ------------------------------------------------------------
+if result:
 
-paymentops_case = st.session_state.get("last_result", None)
+    risk_level = result.get("risk_level", "UNKNOWN")
+    decision = result.get("decision", "UNKNOWN")
 
-if paymentops_case:
-
-    st.subheader("📋 Current PaymentOps Case")
-
-    p1, p2, p3, p4 = st.columns(4)
-
-    p1.metric(
-        "Payment",
-        str(paymentops_case.get("transaction_id", "N/A"))[:18]
-    )
-
-    p2.metric(
-        "Amount",
-        f"₹{float(paymentops_case.get('amount', 0)):,.2f}"
-    )
-
-    p3.metric(
-        "Risk Level",
-        paymentops_case.get("risk_level", "UNKNOWN")
-    )
-
-    p4.metric(
-        "Decision",
-        paymentops_case.get("decision", "N/A")
-    )
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # PaymentOps AI analysis
-    # --------------------------------------------------------
-
-    st.subheader("🧠 PaymentOps Analysis")
-
-    risk_level = paymentops_case.get("risk_level", "UNKNOWN")
-    decision = paymentops_case.get("decision", "N/A")
     fraud_probability = float(
-        paymentops_case.get("fraud_probability", 0)
+        result.get("fraud_probability", 0)
     )
 
     amount = float(
-        paymentops_case.get("amount", 0)
-    )
-
-    payment_status = paymentops_case.get(
-        "payment_status",
-        "Payment analyzed by PayShield"
+        result.get("amount", 0)
     )
 
     # --------------------------------------------------------
-    # Generate merchant intelligence
+    # PROBLEM ANALYSIS
     # --------------------------------------------------------
 
     if risk_level == "HIGH":
 
         problem = (
-            "The transaction has been classified as HIGH risk "
-            "and requires security review before processing."
+            "The transaction was identified as high risk. "
+            "The payment should not be processed automatically "
+            "until the transaction is verified."
         )
 
-        evidence = [
-            f"Fraud probability: {fraud_probability:.2%}",
-            f"Transaction amount: ₹{amount:,.2f}",
-            "Risk Engine detected elevated transaction risk",
-            "Transaction should not be automatically completed"
+        why = [
+            f"Fraud probability is {fraud_probability:.1%}",
+            f"Transaction amount is ₹{amount:,.2f}",
+            "Risk Engine detected multiple elevated risk signals",
+            "Automatic processing could expose the merchant to fraud"
         ]
 
-        recommendation = (
-            "HOLD the transaction and raise a security ticket. "
-            "Merchant verification should be completed before "
-            "allowing the payment."
+        impact = (
+            "The transaction has been blocked to reduce potential "
+            "fraud exposure and prevent an unsafe payment from "
+            "being completed."
         )
 
-        recovery = (
-            "Do not immediately retry a high-risk payment. "
-            "After verification, PayRecover and Smart Retry "
-            "can determine whether recovery is appropriate."
+        action = (
+            "HOLD PAYMENT → SECURITY REVIEW → VERIFY CUSTOMER"
         )
 
-        ops_status = "SECURITY REVIEW"
+        assessment = (
+            "This is more consistent with a high-risk transaction "
+            "than a normal payment issue. Immediate retry is not "
+            "recommended until verification is completed."
+        )
 
     elif risk_level == "MEDIUM":
 
         problem = (
-            "The transaction has moderate risk and requires "
-            "additional customer verification."
+            "The transaction contains moderate-risk signals. "
+            "The payment requires additional customer verification "
+            "before it can be safely completed."
         )
 
-        evidence = [
-            f"Fraud probability: {fraud_probability:.2%}",
-            f"Transaction amount: ₹{amount:,.2f}",
-            "Risk Engine detected medium-level risk",
+        why = [
+            f"Fraud probability is {fraud_probability:.1%}",
+            f"Transaction amount is ₹{amount:,.2f}",
+            "Risk Engine detected suspicious transaction signals",
             "Additional authentication is required"
         ]
 
-        recommendation = (
-            "Trigger 2FA before allowing the transaction. "
-            "Proceed only after successful customer verification."
+        impact = (
+            "The payment has been paused temporarily to verify "
+            "that the legitimate customer initiated the transaction."
         )
 
-        recovery = (
-            "If the payment fails after verification, "
-            "PayRecover can analyze the failure and Smart Retry "
-            "can recommend an appropriate retry window."
+        action = (
+            "TRIGGER 2FA → VERIFY CUSTOMER → ALLOW IF VERIFIED"
         )
 
-        ops_status = "2FA VERIFICATION"
+        assessment = (
+            "The transaction is not automatically classified as "
+            "fraud, but additional verification is required before "
+            "processing."
+        )
 
     else:
 
         problem = (
-            "The transaction has been classified as LOW risk "
-            "and can proceed normally."
+            "No significant fraud indicators were detected. "
+            "The transaction appears suitable for normal processing."
         )
 
-        evidence = [
-            f"Fraud probability: {fraud_probability:.2%}",
-            f"Transaction amount: ₹{amount:,.2f}",
-            "Risk Engine detected low transaction risk",
-            "No additional security intervention required"
+        why = [
+            f"Fraud probability is {fraud_probability:.1%}",
+            f"Transaction amount is ₹{amount:,.2f}",
+            "Risk Engine detected low-risk behavior",
+            "No additional security intervention is required"
         ]
 
-        recommendation = (
-            "ALLOW the transaction and continue normal payment "
-            "processing."
+        impact = (
+            "The transaction can proceed normally with low "
+            "expected fraud exposure."
         )
 
-        recovery = (
-            "If the payment subsequently fails, PayRecover AI "
-            "can analyze the failure and Smart Retry AI can "
-            "recommend the best recovery window."
+        action = (
+            "ALLOW PAYMENT → CONTINUE NORMAL PROCESSING"
         )
 
-        ops_status = "NORMAL PROCESSING"
+        assessment = (
+            "The transaction currently appears consistent with "
+            "normal customer behavior."
+        )
 
     # --------------------------------------------------------
-    # Information panels
+    # CASE SUMMARY
     # --------------------------------------------------------
 
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
 
-    with c1:
-
-        st.markdown("### 🔎 Problem")
-
-        st.info(problem)
-
-        st.markdown("### 📊 Evidence")
-
-        for item in evidence:
-            st.write(f"• {item}")
-
-    with c2:
-
-        st.markdown("### 🎯 Recommended Action")
-
-        st.success(recommendation)
-
-        st.markdown("### 💰 Recovery Guidance")
-
-        st.warning(recovery)
-
-    # --------------------------------------------------------
-    # Decision Summary
-    # --------------------------------------------------------
-
-    st.divider()
-
-    st.subheader("⚙️ PaymentOps Decision Summary")
-
-    d1, d2, d3, d4 = st.columns(4)
-
-    d1.metric(
-        "FraudShield",
+    c1.metric(
+        "Risk Level",
         risk_level
     )
 
-    d2.metric(
+    c2.metric(
+        "Fraud Probability",
+        f"{fraud_probability:.1%}"
+    )
+
+    c3.metric(
         "Decision",
         decision
     )
 
-    d3.metric(
-        "PaymentOps",
-        ops_status
-    )
+    st.divider()
 
-    if risk_level == "HIGH":
-        recovery_status = "REVIEW REQUIRED"
-    elif risk_level == "MEDIUM":
-        recovery_status = "READY AFTER 2FA"
-    else:
-        recovery_status = "READY"
+    # --------------------------------------------------------
+    # PROBLEM
+    # --------------------------------------------------------
 
-    d4.metric(
-        "Recovery",
-        recovery_status
-    )
+    st.subheader("🚨 Problem Detected")
+
+    st.warning(problem)
+
+    # --------------------------------------------------------
+    # WHY
+    # --------------------------------------------------------
+
+    st.subheader("🔍 Why did this happen?")
+
+    for item in why:
+        st.write(f"• {item}")
+
+    # --------------------------------------------------------
+    # IMPACT
+    # --------------------------------------------------------
+
+    st.subheader("📊 Business Impact")
+
+    st.info(impact)
+
+    # --------------------------------------------------------
+    # RECOMMENDED ACTION
+    # --------------------------------------------------------
+
+    st.subheader("🎯 Recommended Action")
+
+    st.success(action)
+
+    # --------------------------------------------------------
+    # AI ASSESSMENT
+    # --------------------------------------------------------
+
+    st.subheader("🧠 AI Assessment")
+
+    st.write(assessment)
 
 else:
 
-    # --------------------------------------------------------
-    # No transaction analyzed yet
-    # --------------------------------------------------------
-
     st.info(
-        "No active PaymentOps case. Analyze a transaction or "
-        "inject a Razorpay Sandbox webhook to start PaymentOps AI."
+        "No payment incident is currently available. "
+        "Analyze a transaction or inject a Razorpay Sandbox "
+        "webhook to generate a PaymentOps incident analysis."
     )
 
-    st.subheader("🚀 What PaymentOps AI Does")
-
-    a1, a2, a3 = st.columns(3)
-
-    with a1:
-        st.markdown("### 🛡️ FraudShield")
-        st.write(
-            "Analyzes transactions using the fraud detection "
-            "model and assigns LOW, MEDIUM, or HIGH risk."
-        )
-
-    with a2:
-        st.markdown("### 💰 PayRecover")
-        st.write(
-            "Analyzes failed payments and estimates the "
-            "probability of successful recovery."
-        )
-
-    with a3:
-        st.markdown("### ⏰ Smart Retry")
-        st.write(
-            "Evaluates retry windows and recommends the "
-            "most suitable recovery timing."
-        )
-
 # ------------------------------------------------------------
-# PaymentOps architecture
+# FOOTER
 # ------------------------------------------------------------
-
-st.divider()
-
-st.subheader("🔄 PaymentOps AI Workflow")
-
-st.markdown(
-    """
-    **Razorpay Payment**
-    ↓  
-    **FraudShield ML**
-    ↓  
-    **Risk Decision**
-    ↓  
-    🟢 LOW → **ALLOW**  
-    🟠 MEDIUM → **2FA**  
-    🔴 HIGH → **HOLD + SECURITY TICKET**
-    ↓  
-    **PaymentOps AI**
-    ↓  
-    **PayRecover AI**
-    ↓  
-    **Smart Retry AI**
-    """
-)
 
 st.caption(
-    "🛡️ PayShield AI • FraudShield + PayRecover AI + "
-    "Smart Retry + PaymentOps"
+    "🛡️ PayShield AI • PaymentOps converts payment and risk "
+    "signals into actionable merchant intelligence."
 )
