@@ -9,6 +9,11 @@ import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
 
+try:
+    from google import genai
+except ImportError:
+    genai = None
+
 # Flexible imports for LangChain compatibility
 try:
     from langchain_groq import ChatGroq
@@ -88,6 +93,8 @@ elif st.session_state.get("authentication_status") is None:
 st.sidebar.write(f"Logged in as: **{st.session_state.get('name')}**")
 authenticator.logout("Logout", "sidebar")
 
+
+
 # ============================================================
 # PATHS
 # ============================================================
@@ -125,7 +132,10 @@ DEFAULTS = {
     "pay_later_selected": False,
     "failed_payment": False,
     "fraud_blocked_val": 142500.00,
-    "revenue_recovered_val": 58900.00
+    "revenue_recovered_val": 58900.00,
+    "gemini_chat": [],
+    "sound_enabled": True,
+    "last_sound_id": None
 }
 
 for key, value in DEFAULTS.items():
@@ -173,6 +183,9 @@ div[data-baseweb="select"] > div, div[data-baseweb="input"] > div { border-radiu
 .live-status { padding: 13px 18px; border-radius: 12px; background: rgba(33,195,84,.08); border: 1px solid rgba(33,195,84,.25); margin-top: 18px; }
 h1, h2, h3 { font-weight: 800; }
 hr { margin: 25px 0; }
+.hero-shell{position:relative;overflow:hidden;padding:28px 30px;border-radius:24px;border:1px solid rgba(255,255,255,.12);background:radial-gradient(circle at 85% 20%,rgba(79,140,255,.22),transparent 30%),linear-gradient(135deg,rgba(255,255,255,.07),rgba(255,255,255,.025));box-shadow:0 18px 60px rgba(0,0,0,.28)}
+.hero-grid{display:grid;grid-template-columns:1.5fr .8fr;gap:20px;align-items:center}.hero-kicker{color:#7dd3fc;font-size:12px;font-weight:900;letter-spacing:2px}.hero-title{font-size:clamp(34px,4vw,58px);line-height:1.02;font-weight:950;margin:8px 0}.hero-copy{color:#aeb7c7;font-size:16px;line-height:1.55}.hero-chip{display:inline-block;padding:7px 11px;margin:8px 6px 0 0;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);font-size:12px;font-weight:800}.hero-art{min-height:190px;display:flex;align-items:center;justify-content:center}.shield-orbit{width:160px;height:160px;border:1px solid rgba(125,211,252,.35);border-radius:50%;position:relative;animation:spin 16s linear infinite}.shield-core{position:absolute;inset:32px;border-radius:28px;display:flex;align-items:center;justify-content:center;font-size:54px;background:linear-gradient(145deg,rgba(79,140,255,.25),rgba(33,195,84,.12));border:1px solid rgba(125,211,252,.4);box-shadow:0 0 40px rgba(79,140,255,.2)}.scan-line{position:absolute;left:8%;right:8%;top:50%;height:2px;background:#7dd3fc;box-shadow:0 0 18px #7dd3fc;animation:scan 2.8s ease-in-out infinite}.nav-bar{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0}.nav-pill{padding:8px 13px;border-radius:999px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.10);font-size:12px;font-weight:800;text-decoration:none;color:inherit}.nav-pill:hover{background:rgba(79,140,255,.16);border-color:rgba(79,140,255,.45)}.chat-card{padding:18px;border-radius:18px;border:1px solid rgba(125,211,252,.2);background:linear-gradient(145deg,rgba(79,140,255,.09),rgba(255,255,255,.025))}@keyframes spin{to{transform:rotate(360deg)}}@keyframes scan{0%,100%{transform:translateY(-55px);opacity:.25}50%{transform:translateY(55px);opacity:1}}
+
 @media (max-width: 768px) { .title { font-size: 34px; } .subtitle { font-size: 14px; } }
 </style>
 """,
@@ -184,23 +197,8 @@ hr { margin: 25px 0; }
 # ============================================================
 
 st.markdown(
-    """
-    <div class="title">
-        🛡️ PayShield AI
-    </div>
-    <div class="subtitle">
-        AI-Powered Payment Protection • FraudShield • PayRecover AI • Smart Retry • PaymentOps
-    </div>
-    <div class="live-status">
-        🟢 <b>PAYMENT SECURITY SYSTEM ONLINE</b>
-        &nbsp;&nbsp;•&nbsp;&nbsp; FraudShield ACTIVE
-        &nbsp;&nbsp;•&nbsp;&nbsp; PayRecover ACTIVE
-        &nbsp;&nbsp;•&nbsp;&nbsp; Smart Retry ACTIVE
-        &nbsp;&nbsp;•&nbsp;&nbsp; PaymentOps ACTIVE
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    """<div class="hero-shell"><div class="hero-grid"><div><div class="hero-kicker">AUTONOMOUS PAYMENT SECURITY</div><div class="hero-title">🛡️ PayShield AI</div><div class="hero-copy">Protect every payment, verify risky transactions, recover failed revenue, and turn payment incidents into clear merchant actions.</div><span class="hero-chip">🛡️ FraudShield</span><span class="hero-chip">💰 PayRecover</span><span class="hero-chip">⏰ Smart Retry</span><span class="hero-chip">🤖 PaymentOps</span><div class="live-status">🟢 <b>SYSTEM ONLINE</b> &nbsp;•&nbsp; Decision Engine READY &nbsp;•&nbsp; Razorpay Sandbox READY &nbsp;•&nbsp; AI Assistant READY</div></div><div class="hero-art"><div class="shield-orbit"><div class="shield-core">🛡️</div><div class="scan-line"></div></div></div></div></div>
+<div class="nav-bar"><a class="nav-pill" href="#fraudshield">🛡️ FraudShield</a><a class="nav-pill" href="#recovery">💰 PayRecover</a><a class="nav-pill" href="#smart-retry">⏰ Smart Retry</a><a class="nav-pill" href="#paymentops">🤖 PaymentOps</a><a class="nav-pill" href="#manual">📖 Manual</a><a class="nav-pill" href="#assistant">💬 AI Assistant</a></div>""", unsafe_allow_html=True)
 
 st.divider()
 
@@ -261,6 +259,57 @@ def generate_agentic_ticket(payload_data, risk_score):
             "• **Behavioral Anomaly**: Transaction amount deviated significantly from user mean.\n"
             "• **Recommended Mitigation**: Hold funds, generate Security Ticket, require 2FA re-verification."
         )
+
+# ============================================================
+# GEMINI AI ASSISTANT
+# ============================================================
+def make_sound(freq=660, duration=0.12, volume=0.08):
+    rate = 22050
+    samples = (np.sin(2 * np.pi * freq * np.arange(int(rate * duration)) / rate) * volume * 32767).astype(np.int16)
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wav:
+        wav.setnchannels(1)
+        wav.setsampwidth(2)
+        wav.setframerate(rate)
+        wav.writeframes(samples.tobytes())
+    return buf.getvalue()
+
+
+def gemini_answer(question, context):
+    try:
+        api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key or genai is None:
+            return "Gemini is not configured yet. Add GEMINI_API_KEY to Streamlit Secrets to enable the assistant."
+        client = genai.Client(api_key=api_key)
+        prompt = f"""You are PayShield AI, a fintech security assistant. Explain the system clearly to a merchant. Never override the ML decision, never claim a payment was actually charged, and do not invent transaction facts.
+CURRENT PAYSHIELD CONTEXT:
+{context}
+MERCHANT QUESTION:
+{question}
+Give a concise, useful answer with the relevant risk/recovery reasoning."""
+        response = client.models.generate_content(model=os.getenv("GEMINI_MODEL", "gemini-2.5-flash"), contents=prompt)
+        return response.text or "I could not generate an answer."
+    except Exception as exc:
+        return f"Gemini assistant error: {exc}"
+
+st.sidebar.checkbox("🔊 Sound feedback", key="sound_enabled", help="Plays a short confirmation tone after a payment analysis.")
+
+with st.sidebar.expander("💬 Ask PayShield AI", expanded=False):
+    st.caption("Gemini-powered merchant assistant. It explains your current PayShield result; it does not make the payment decision.")
+    if st.session_state.get("last_result"):
+        r = st.session_state.last_result
+        context = json.dumps({k: r.get(k) for k in ["analysis_id","risk","level","action","amount","model_probability","merchant_risk","ip_risk"]}, default=str)
+    else:
+        context = "No transaction has been analyzed yet."
+    question = st.text_input("Ask a question", placeholder="Why was this payment flagged?", key="gemini_question")
+    if st.button("✨ Ask Gemini", key="ask_gemini", use_container_width=True):
+        if question.strip():
+            answer = gemini_answer(question.strip(), context)
+            st.session_state.gemini_chat.append({"q": question.strip(), "a": answer})
+    for chat in st.session_state.gemini_chat[-3:]:
+        st.markdown(f"**You:** {chat['q']}")
+        st.info(chat["a"])
+
 
 # ============================================================
 # LOAD MODELS & DATA
@@ -605,6 +654,7 @@ with st.sidebar.expander("🔌 Inject Razorpay Sandbox Webhook", expanded=False)
 # RISK STATISTICS & SOC DASHBOARD
 # ============================================================
 
+st.markdown('<div id="fraudshield"></div>', unsafe_allow_html=True)
 st.header("📊 Risk Statistics")
 
 total_transactions = len(fraud_data)
@@ -723,6 +773,11 @@ if result:
     m2.metric("Risk Level", f"{icon} {risk_level}")
     m3.metric("Payment Action", action)
     st.progress(int(min(max(risk_score, 0), 100)))
+    current_sound_id = result.get("analysis_id")
+    if st.session_state.get("sound_enabled") and current_sound_id != st.session_state.get("last_sound_id"):
+        sound_freq = {"LOW": 880, "MEDIUM": 660, "HIGH": 220}.get(risk_level, 660)
+        st.audio(make_sound(sound_freq), format="audio/wav", autoplay=True)
+        st.session_state.last_sound_id = current_sound_id
 
     # ========================================================
     # 🧠 LIVE DECISION ENGINE
@@ -885,6 +940,7 @@ else:
 # ============================================================
 
 st.divider()
+st.markdown('<div id="recovery"></div>', unsafe_allow_html=True)
 st.header("💰 PayRecover AI")
 
 failed_payment = st.checkbox("❌ Simulate Failed Payment", key="failed_payment")
@@ -921,6 +977,7 @@ if failed_payment:
     rc2.metric("Payment Status", "FAILED")
     st.progress(int(min(max(recovery_probability, 0), 100)))
 
+    st.markdown('<div id="smart-retry"></div>', unsafe_allow_html=True)
     st.header("⏰ Smart Retry AI")
 
     # ========================================================
@@ -1082,6 +1139,7 @@ if failed_payment:
 # ============================================================
 
 st.divider()
+st.markdown('<div id="paymentops"></div>', unsafe_allow_html=True)
 st.header("🤖 PaymentOps AI — Incident Analysis")
 st.caption(
     "AI-powered incident interpretation for fraud decisions, "
@@ -1345,3 +1403,45 @@ else:
     st.success(
         "🟢 NORMAL PAYMENT PROCESSING"
     )
+
+# ============================================================
+# PAYSHIELD MANUAL
+# ============================================================
+st.markdown('<div id="manual"></div>', unsafe_allow_html=True)
+st.divider()
+st.header("📖 PayShield Manual")
+st.caption("A quick guide for merchants, security analysts, and buildathon judges.")
+manual_items = {
+    "🛡️ FraudShield": "Analyzes transaction and behavioral features and produces a 0–100 risk score.",
+    "🟢 LOW → ALLOW": "Low-risk payments continue normally.",
+    "🟠 MEDIUM → 2FA": "Medium-risk payments require OTP verification before approval.",
+    "🔴 HIGH → HOLD": "High-risk payments are held and can generate a security ticket for review.",
+    "💰 PayRecover": "Analyzes failed payments and estimates recovery probability.",
+    "⏰ Smart Retry": "Compares retry windows and recommends the strongest predicted retry time.",
+    "💳 Change Payment Method": "Compares available payment methods when recovery optimization is available.",
+    "🤖 PaymentOps": "Explains the incident, business impact, and recommended operational response.",
+    "🔌 Razorpay Sandbox": "Lets you simulate Razorpay test webhook events without moving real money."
+}
+for title, text in manual_items.items():
+    with st.expander(title):
+        st.write(text)
+
+# ============================================================
+# GEMINI ASSISTANT — MAIN PANEL
+# ============================================================
+st.markdown('<div id="assistant"></div>', unsafe_allow_html=True)
+st.header("💬 PayShield AI Assistant")
+st.markdown('<div class="chat-card"><b>Gemini-powered explanations</b><br><span style="color:#9ca3af">Ask about the current risk score, 2FA, payment recovery, retry timing, or PaymentOps recommendations.</span></div>', unsafe_allow_html=True)
+q2 = st.text_input("Your question", placeholder="Explain the current payment decision", key="gemini_main_question")
+if st.button("🤖 Ask PayShield AI", key="gemini_main_button", type="primary"):
+    if q2.strip():
+        current = st.session_state.get("last_result") or {}
+        context = json.dumps(current, default=str)[:6000]
+        ans = gemini_answer(q2.strip(), context)
+        st.session_state.gemini_chat.append({"q": q2.strip(), "a": ans})
+        st.rerun()
+if st.session_state.gemini_chat:
+    last = st.session_state.gemini_chat[-1]
+    st.markdown(f"**You:** {last['q']}")
+    st.info(last['a'])
+
