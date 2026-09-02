@@ -1055,16 +1055,24 @@ if not decision:
 # TRANSACTION ID
 # ------------------------------------------------------------
 
-transaction_id = (
-    result.get("transaction_id")
-    or result.get("payment_id")
-    or result.get("id")
-    or st.session_state.get("transaction_id")
-    or st.session_state.get("current_transaction_id")
-    or st.session_state.get("payment_id")
-    or "TXN-DEMO-001"
-)
-
+if isinstance(result, dict):
+    transaction_id = (
+        result.get("transaction_id")
+        or result.get("payment_id")
+        or result.get("id")
+        or result.get("analysis_id")
+        or st.session_state.get("transaction_id")
+        or st.session_state.get("current_transaction_id")
+        or st.session_state.get("payment_id")
+        or "N/A"
+    )
+else:
+    transaction_id = (
+        st.session_state.get("transaction_id")
+        or st.session_state.get("current_transaction_id")
+        or st.session_state.get("payment_id")
+        or "N/A"
+    )
 # ------------------------------------------------------------
 # AMOUNT
 # ------------------------------------------------------------
