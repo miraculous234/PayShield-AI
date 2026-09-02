@@ -1039,7 +1039,10 @@ else:
 # DECISION
 # ------------------------------------------------------------
 
-decision = result.get("decision")
+if isinstance(result, dict):
+    decision = result.get("decision") or result.get("action")
+else:
+    decision = None
 
 if not decision:
     if risk_level == "HIGH":
@@ -1048,7 +1051,6 @@ if not decision:
         decision = "2FA"
     else:
         decision = "ALLOW"
-
 # ------------------------------------------------------------
 # TRANSACTION ID
 # ------------------------------------------------------------
