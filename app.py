@@ -1001,14 +1001,19 @@ result = st.session_state.get("last_result", {})
 # GET RISK SCORE
 # ------------------------------------------------------------
 
-risk_score = (
-    result.get("risk_score")
-    or result.get("fraud_score")
-    or result.get("fraud_probability")
-    or result.get("fraud_prob")
-    or result.get("model_probability")
-    or result.get("probability")
-)
+if isinstance(result, dict):
+    risk_score = (
+        result.get("risk")
+        or result.get("risk_score")
+        or result.get("fraud_score")
+        or result.get("fraud_probability")
+        or result.get("fraud_prob")
+        or result.get("model_probability")
+        or result.get("probability")
+        or 0
+    )
+else:
+    risk_score = 0
 
 if risk_score is None:
     risk_score = 0
