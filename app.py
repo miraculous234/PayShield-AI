@@ -924,6 +924,93 @@ if failed_payment:
     st.header("⏰ Smart Retry AI")
 
     # ========================================================
+    # PAYMENT METHOD OPTIMIZATION
+    # ========================================================
+
+    st.subheader("💳 Change Payment Method")
+
+    available_methods = ["UPI", "CARD", "WALLET", "NETBANKING"]
+    method_probabilities = []
+
+    for candidate_method in available_methods:
+        method_input = pd.DataFrame([{
+            "amount": amount,
+            "payment_method": candidate_method,
+            "failure_reason": failure_reason,
+            "retry_count": retry_count,
+            "minutes_since_failure": minutes_since_failure,
+            "customer_success_rate": customer_success_rate,
+            "method_success_rate": method_success_rate,
+            "previous_failures": previous_failures,
+            "is_international": int(international == "Yes"),
+            "device_type": device_type,
+            "hour": datetime.now().hour,
+            "day_of_week": datetime.now().weekday()
+        }]).reindex(columns=recovery_features)
+
+        try:
+            method_probability = float(
+                recovery_model.predict_proba(method_input)[0, 1]
+            ) * 100
+        except Exception:
+            method_probability = 0.0
+
+        method_probabilities.append(method_probability)
+
+    method_df = pd.DataFrame({
+        "Payment Method": available_methods,
+        "Predicted Recovery": method_probabilities
+    })
+
+    best_method_index = int(np.argmax(method_probabilities))
+    best_method = available_methods[best_method_index]
+    best_method_probability = method_probabilities[best_method_index]
+
+    # Graph: recovery probability by payment method
+    st.bar_chart(
+        method_df.set_index("Payment Method")["Predicted Recovery"],
+        use_container_width=True
+    )
+
+    mc1, mc2 = st.columns(2)
+
+    with mc1:
+        st.metric(
+            "⭐ Best Payment Method",
+            best_method,
+            f"{best_method_probability:.2f}% predicted recovery"
+        )
+
+    with mc2:
+        st.metric(
+            "Current Method",
+            payment_method,
+            f"{method_probabilities[available_methods.index(payment_method)]:.2f}%"
+        )
+
+    if best_method != payment_method:
+        st.warning(
+            f"🔄 PaymentOps recommends changing from {payment_method} "
+            f"to {best_method} before retrying."
+        )
+
+        if st.button(
+            f"🔄 CHANGE PAYMENT METHOD → {best_method}",
+            key="change_payment_method",
+            use_container_width=True
+        ):
+            st.session_state.method_changed = True
+            st.session_state.selected_retry_method = best_method
+            st.success(
+                f"✅ Payment method changed to {best_method}. "
+                f"Predicted recovery probability: {best_method_probability:.2f}%"
+            )
+    else:
+        st.success(
+            f"✅ {payment_method} is currently the best available payment method."
+        )
+
+    # ========================================================
     # RETRY-TIME OPTIMIZATION
     # ========================================================
 
@@ -976,7 +1063,13 @@ if failed_payment:
             f"{best_probability:.2f}%"
         )
 
-    st.success(f"⭐ PayRecover AI recommends retrying after {best_time} minutes with {best_probability:.2f}% predicted success.")
+    # Combined recommendation
+    st.success(
+        f"⭐ SMART RETRY RECOMMENDATION: "
+        f"Retry after {best_time} minutes"
+        f"{f' using {best_method}' if best_method != payment_method else f' using {payment_method}'} "
+        f"with {best_probability:.2f}% predicted retry success."
+    )
 
     st.caption(
         "Smart Retry AI compares multiple retry windows using the trained retry model. "
@@ -996,24 +1089,22 @@ st.caption(
 )
 
 result = st.session_state.get("last_result", {})
+if not isinstance(result, dict):
+    result = {}
 
 # ------------------------------------------------------------
 # GET RISK SCORE
 # ------------------------------------------------------------
 
-if isinstance(result, dict):
-    risk_score = (
-        result.get("risk")
-        or result.get("risk_score")
-        or result.get("fraud_score")
-        or result.get("fraud_probability")
-        or result.get("fraud_prob")
-        or result.get("model_probability")
-        or result.get("probability")
-        or 0
-    )
-else:
-    risk_score = 0
+risk_score = (
+    result.get("risk")
+    or result.get("risk_score")
+    or result.get("fraud_score")
+    or result.get("fraud_probability")
+    or result.get("fraud_prob")
+    or result.get("model_probability")
+    or result.get("probability")
+)
 
 if risk_score is None:
     risk_score = 0
@@ -1039,10 +1130,7 @@ else:
 # DECISION
 # ------------------------------------------------------------
 
-if isinstance(result, dict):
-    decision = result.get("decision") or result.get("action")
-else:
-    decision = None
+decision = result.get("decision") or result.get("action")
 
 if not decision:
     if risk_level == "HIGH":
@@ -1051,28 +1139,22 @@ if not decision:
         decision = "2FA"
     else:
         decision = "ALLOW"
+
 # ------------------------------------------------------------
 # TRANSACTION ID
 # ------------------------------------------------------------
 
-if isinstance(result, dict):
-    transaction_id = (
-        result.get("transaction_id")
-        or result.get("payment_id")
-        or result.get("id")
-        or result.get("analysis_id")
-        or st.session_state.get("transaction_id")
-        or st.session_state.get("current_transaction_id")
-        or st.session_state.get("payment_id")
-        or "N/A"
-    )
-else:
-    transaction_id = (
-        st.session_state.get("transaction_id")
-        or st.session_state.get("current_transaction_id")
-        or st.session_state.get("payment_id")
-        or "N/A"
-    )
+transaction_id = (
+    result.get("transaction_id")
+    or result.get("payment_id")
+    or result.get("id")
+    or result.get("analysis_id")
+    or st.session_state.get("transaction_id")
+    or st.session_state.get("current_transaction_id")
+    or st.session_state.get("payment_id")
+    or "TXN-DEMO-001"
+)
+
 # ------------------------------------------------------------
 # AMOUNT
 # ------------------------------------------------------------
