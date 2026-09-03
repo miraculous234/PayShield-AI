@@ -29,7 +29,7 @@ It connects **ML fraud prediction → deterministic decisioning → risk-based v
 | Field | Value |
 |---|---|
 | Username | `merchant_admin` |
-| Password | **Provided privately to judges** |
+| Password | Provided in the Razorpay 5-min video pitch |
 
 > The password is intentionally not committed to this public repository. Authentication is configured through deployment secrets.
 
