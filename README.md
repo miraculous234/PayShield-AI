@@ -784,7 +784,7 @@ Use the live Streamlit demo listed above.
 
 ```text
 Username: merchant_admin
-Password: Provided separately for buildathon evaluation
+Password: Provided separately for buildathon pitch video
 ```
 
 For a public GitHub repository, the judge password is intentionally **not committed to the repository**. Deployment secrets are used for authentication.
