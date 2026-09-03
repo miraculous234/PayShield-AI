@@ -36,17 +36,17 @@ st.set_page_config(
 # ============================================================
 
 names = ["Merchant Admin", "Security Analyst"]
-usernames = ["merchant_admin", "analyst"]
-passwords = ["admin123", "shield123"]
+usernames = st.secrets.get("AUTH_USERNAMES", "merchant_admin,analyst").split(",")
+passwords = st.secrets.get("AUTH_PASSWORDS", "").split(",")
+if not all(passwords):
+    st.error("Auth secrets not configured. Set AUTH_USERNAMES / AUTH_PASSWORDS in Streamlit secrets.")
+    st.stop()
 
 # Version-agnostic password hashing
 try:
     hashed_passwords = [stauth.Hasher.hash(p) for p in passwords]
 except AttributeError:
-    try:
-        hashed_passwords = stauth.Hasher(passwords).generate()
-    except Exception:
-        hashed_passwords = passwords
+    hashed_passwords = stauth.Hasher(passwords).generate()
 
 credentials = {
     "usernames": {
@@ -58,7 +58,7 @@ credentials = {
 authenticator = stauth.Authenticate(
     credentials,
     "payshield_cookie",
-    "auth_key_12345",
+    st.secrets.get("COOKIE_KEY", "change_me_locally"),
     cookie_expiry_days=1
 )
 
@@ -1042,7 +1042,10 @@ if result:
             else:
                 otp_input = st.text_input("Enter the 6-digit OTP", max_chars=6, key="otp_input")
                 if st.button("🔐 VERIFY 2FA", key="verify_2fa", type="primary", use_container_width=True):
-                    if st.session_state.otp_expiry and datetime.now() > st.session_state.otp_expiry:
+                    if st.session_state.otp_attempts >= 3:
+                        st.error("🔒 Too many failed attempts. Payment blocked — request a new OTP.")
+                        st.session_state.generated_otp = None
+                    elif st.session_state.otp_expiry and datetime.now() > st.session_state.otp_expiry:
                         st.error("⏰ OTP expired. Please send a new OTP.")
                         st.session_state.generated_otp = None
                     elif otp_input == st.session_state.generated_otp:
@@ -1052,7 +1055,8 @@ if result:
                         st.rerun()
                     else:
                         st.session_state.otp_attempts += 1
-                        st.error("❌ INVALID OTP — PAYMENT BLOCKED")
+                        remaining = 3 - st.session_state.otp_attempts
+                        st.error(f"❌ INVALID OTP — {remaining} attempt(s) remaining")
 
     elif risk_level == "HIGH":
         st.error("🔴 HIGH RISK — PAYMENT UNDER REVIEW")
@@ -1619,4 +1623,3 @@ if st.session_state.gemini_chat:
     last = st.session_state.gemini_chat[-1]
     st.markdown(f"**You:** {last['q']}")
     st.info(last['a'])
-
