@@ -1,7 +1,4 @@
-md
-
-
-🛡️ PayShield AI
+#🛡️ PayShield AI
 AI-Powered Fraud Prevention, Risk-Based Verification & Revenue Recovery
 Razorpay AI Buildathon 2026 — AI Risk Manager + AI Revenue Recovery
 
