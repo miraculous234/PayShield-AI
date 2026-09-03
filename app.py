@@ -11,7 +11,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
-import streamlit_authenticator as stauth
+try:
+    import streamlit_authenticator as stauth
+except ImportError:
+    stauth = None
 
 try:
     from google import genai
@@ -36,54 +39,61 @@ st.set_page_config(
 # ============================================================
 
 names = ["Merchant Admin", "Security Analyst"]
-usernames = st.secrets.get("AUTH_USERNAMES", "merchant_admin,analyst").split(",")
-passwords = st.secrets.get("AUTH_PASSWORDS", "").split(",")
-if not all(passwords):
-    st.error("Auth secrets not configured. Set AUTH_USERNAMES / AUTH_PASSWORDS in Streamlit secrets.")
-    st.stop()
 
-# Version-agnostic password hashing
-try:
-    hashed_passwords = [stauth.Hasher.hash(p) for p in passwords]
-except AttributeError:
-    hashed_passwords = stauth.Hasher(passwords).generate()
+def get_secret_value(key, default=""):
+    try:
+        return st.secrets.get(key, default)
+    except Exception:
+        return default
 
-credentials = {
-    "usernames": {
-        usernames[0]: {"name": names[0], "password": hashed_passwords[0]},
-        usernames[1]: {"name": names[1], "password": hashed_passwords[1]}
+usernames = [u.strip() for u in str(get_secret_value("AUTH_USERNAMES", "merchant_admin,analyst")).split(",") if u.strip()]
+passwords = [p.strip() for p in str(get_secret_value("AUTH_PASSWORDS", "")).split(",") if p.strip()]
+auth_configured = bool(passwords) and stauth is not None
+
+if auth_configured:
+    if len(usernames) < 2 or len(passwords) < 2:
+        st.error("Auth configuration requires two usernames and two passwords.")
+        st.stop()
+
+    @st.cache_resource
+    def get_hashed_passwords(passwords_tuple):
+        passwords_list = list(passwords_tuple)
+        try:
+            return [stauth.Hasher.hash(p) for p in passwords_list]
+        except AttributeError:
+            return stauth.Hasher(passwords_list).generate()
+
+    hashed_passwords = get_hashed_passwords(tuple(passwords))
+    credentials = {
+        "usernames": {
+            usernames[0]: {"name": names[0], "password": hashed_passwords[0]},
+            usernames[1]: {"name": names[1], "password": hashed_passwords[1]}
+        }
     }
-}
 
-authenticator = stauth.Authenticate(
-    credentials,
-    "payshield_cookie",
-    st.secrets.get("COOKIE_KEY", "change_me_locally"),
-    cookie_expiry_days=1
-)
+    authenticator = stauth.Authenticate(
+        credentials,
+        "payshield_cookie",
+        get_secret_value("COOKIE_KEY", "change_me_locally"),
+        cookie_expiry_days=1
+    )
 
-# Fix: Use keyword argument or call login without positional string args
-try:
-    authenticator.login(location="main")
-except TypeError:
-    # Fallback for older library signatures
-    authenticator.login("PayShield AI Enterprise Access", location="main")
+    try:
+        authenticator.login(location="main")
+    except TypeError:
+        authenticator.login("PayShield AI Enterprise Access", location="main")
 
-if st.session_state.get("authentication_status") == False:
-    st.error("Username/password is incorrect")
-    st.stop()
-elif st.session_state.get("authentication_status") is None:
-    st.warning("Please enter your merchant credentials to access the PayShield AI Portal")
-    st.stop()
+    if st.session_state.get("authentication_status") == False:
+        st.error("Username/password is incorrect")
+        st.stop()
+    elif st.session_state.get("authentication_status") is None:
+        st.warning("Please enter your merchant credentials to access the PayShield AI Portal")
+        st.stop()
 
-# ============================================================
-# AUTHENTICATED APP CONTENT
-# ============================================================
-
-st.sidebar.write(f"Logged in as: **{st.session_state.get('name')}**")
-authenticator.logout("Logout", "sidebar")
-
-
+    st.sidebar.write(f"Logged in as: **{st.session_state.get('name')}**")
+    authenticator.logout("Logout", "sidebar")
+else:
+    st.sidebar.info("🔓 Demo mode — no login required (auth secrets not configured).")
 
 # ============================================================
 # PATHS
@@ -127,7 +137,9 @@ DEFAULTS = {
     "sound_enabled": True,
     "last_sound_id": None,
     "welcome_seen": False,
-    "welcome_faq_answer": None
+    "welcome_faq_answer": None,
+    "agent_brief_id": None,
+    "agent_brief_text": None
 }
 
 for key, value in DEFAULTS.items():
@@ -402,7 +414,7 @@ def generate_agentic_ticket(payload_data, risk_score):
         "• **Recommended Mitigation**: Hold funds, generate a Security Ticket, and require additional verification.\n"
     )
     try:
-        api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        api_key = get_secret_value("GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY")
         if not api_key or genai is None:
             return fallback
 
@@ -452,7 +464,7 @@ def make_sound(freq=660, duration=0.12, volume=0.08):
 
 def gemini_answer(question, context):
     try:
-        api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
+        api_key = get_secret_value("GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY")
         if not api_key or genai is None:
             return "Gemini is not configured yet. Add GEMINI_API_KEY to Streamlit Secrets to enable the assistant."
         client = genai.Client(api_key=api_key)
@@ -567,7 +579,11 @@ customer_failed_rate = st.sidebar.slider("Customer Failed Rate", 0.0, 1.0, 0.10)
 merchant_txn_before = st.sidebar.number_input("Merchant Transactions Before", min_value=0.0, value=100.0)
 merchant_avg_amount = st.sidebar.number_input("Merchant Average Amount", min_value=0.0, value=2000.0)
 merchant_fraud_rate = st.sidebar.slider("Merchant Fraud Rate", 0.0, 1.0, 0.02)
-post_auth_risk = st.sidebar.slider("Post-Auth Risk Score", 0.0, 1.0, 0.20)
+
+st.sidebar.subheader("🧾 Customer Profile")
+account_age_days = st.sidebar.number_input("Account Age (days)", min_value=1, max_value=10000, value=1000)
+credit_score_band = st.sidebar.slider("Credit Score Band", 1, 5, 3)
+kyc_level = st.sidebar.slider("KYC Level", 0, 3, 2)
 
 st.sidebar.divider()
 
@@ -597,7 +613,10 @@ def run_fraud_decision(
     merchant_txn_before_value,
     merchant_avg_amount_value,
     merchant_fraud_rate_value,
-    post_auth_risk_value,
+    post_auth_risk_value=None,
+    account_age_days_value=1000,
+    credit_score_band_value=3,
+    kyc_level_value=2,
     source="Payment Simulator",
     external_id=None,
     event_name=None,
@@ -638,9 +657,9 @@ def run_fraud_decision(
     is_night = int(hour < 6 or hour >= 22)
 
     fraud_input = pd.DataFrame([{
-        "account_age_days": 1000,
-        "credit_score_band": 3,
-        "kyc_level": 2,
+        "account_age_days": account_age_days_value,
+        "credit_score_band": credit_score_band_value,
+        "kyc_level": kyc_level_value,
         "avg_monthly_spend": monthly_spend,
         "merchant_risk_score": merchant_risk_value,
         "transaction_amount": amount_value,
@@ -899,7 +918,10 @@ if analyze:
             merchant_txn_before_value=merchant_txn_before,
             merchant_avg_amount_value=merchant_avg_amount,
             merchant_fraud_rate_value=merchant_fraud_rate,
-            post_auth_risk_value=post_auth_risk,
+            post_auth_risk_value=None,
+            account_age_days_value=account_age_days,
+            credit_score_band_value=credit_score_band,
+            kyc_level_value=kyc_level,
             source="Payment Simulator",
             demo_mode_value=demo_mode
         )
@@ -909,6 +931,8 @@ if analyze:
         st.session_state.otp_verified = False
         st.session_state.otp_attempts = 0
         st.session_state.ticket_details = None
+        st.session_state.agent_brief_id = None
+        st.session_state.agent_brief_text = None
         st.session_state.scheduled_retry = None
         st.session_state.method_changed = False
         st.session_state.pay_later_selected = False
@@ -1063,13 +1087,17 @@ if result:
         
         # PaymentOps Autonomous LLM Briefing
         st.markdown("### 🤖 PaymentOps Agent Incident Briefing")
-        agent_brief = generate_agentic_ticket({
-            "amount": amount,
-            "txns_1h": txn_1h,
-            "geo_dist": geo_distance,
-            "amt_dev": amount_deviation
-        }, risk_score)
-        st.info(agent_brief)
+
+        if st.session_state.get("agent_brief_id") != result.get("analysis_id"):
+            st.session_state.agent_brief_text = generate_agentic_ticket({
+                "amount": amount,
+                "txns_1h": txn_1h,
+                "geo_dist": geo_distance,
+                "amt_dev": amount_deviation
+            }, risk_score)
+            st.session_state.agent_brief_id = result.get("analysis_id")
+
+        st.info(st.session_state.get("agent_brief_text", "PaymentOps briefing unavailable."))
 
         if st.session_state.ticket_details is None:
             if st.button("🎫 RAISE SECURITY TICKET", key="raise_live_ticket", type="primary", use_container_width=True):
