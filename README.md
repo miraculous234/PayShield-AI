@@ -24,16 +24,7 @@ It connects **ML fraud prediction → deterministic decisioning → risk-based v
 
 ---
 
-## 🔐 Judge Credentials
 
-| Field | Value |
-|---|---|
-| Username | `merchant_admin` |
-| Password | Provided in the Razorpay 5-min video pitch |
-
-> The password is intentionally not committed to this public repository. Authentication is configured through deployment secrets.
-
----
 
 ## ⚡ 3-Minute Judge Demo
 
