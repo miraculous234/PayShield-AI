@@ -1,18 +1,28 @@
 # 🛡️ PayShield AI
 
-### AI-Powered Fraud Prevention, Risk-Based Verification & Revenue Recovery
+### Autonomous Payment Protection, Operations & Revenue Recovery
 
 > **Razorpay AI Buildathon 2026 — AI Risk Manager + AI Revenue Recovery**
 
-PayShield AI is an AI-powered payment security and recovery prototype built around one principle:
+PayShield AI is an end-to-end payment intelligence system that combines **FraudShield, PaymentOps, PayRecover, and Smart Retry** into one merchant-facing workflow.
+
+Instead of treating fraud, payment failures, and operational incidents as separate problems, PayShield connects them across the payment lifecycle:
+
+```text
+DETECT → DECIDE → RESPOND → RECOVER
+```
+
+### The core idea
 
 > **Don't treat every payment the same.**
 
-It connects:
+A low-risk transaction should move smoothly.
 
-**ML fraud prediction → deterministic decisioning → risk-based verification → security intervention → failed-payment recovery → intelligent retry → operational explanation**
+A medium-risk transaction should receive additional verification.
 
-into one merchant-facing workflow.
+A high-risk transaction should be stopped and escalated.
+
+And when a legitimate payment fails, the system should determine whether the revenue can still be recovered and choose an intelligent retry strategy.
 
 ---
 
@@ -22,370 +32,170 @@ into one merchant-facing workflow.
 
 ### 👉 [Launch PayShield AI](https://payshield-ai-iblc2arnq6ovzfecwi8tyq.streamlit.app/)
 
-**No login or local installation is required.**
+**No login is required.**
 
-Open the live application and start testing the workflow immediately.
-
-> **Prototype boundary:** Razorpay payment events are demonstrated through sandbox/webhook simulation. No real customer money is processed.
+The application is a public buildathon prototype using sandbox/simulated payment events. It does not process real customer money.
 
 ---
 
-# ⚡ 3-Minute Judge Demo
+# ⚡ What PayShield AI Does
 
-## 1️⃣ Real AI Fraud Detection — ~45 sec
+PayShield combines four major capabilities:
 
-Select:
+### 🛡️ FraudShield
 
-```text
-🤖 AI Model
-```
+Detects transaction risk using machine-learning signals.
 
-Run a transaction and show:
+### 🧠 Decision Engine
 
-```text
-Transaction
-     ↓
-🛡️ FraudShield ML
-     ↓
-Fraud Probability
-     ↓
-🧠 Decision Engine
-     ↓
-ALLOW / 2FA / HOLD
-```
-
-### What to evaluate
-
-The ML model produces the fraud-risk signal.
-
-The deterministic Decision Engine converts that signal into the operational payment action.
-
-This separation keeps the final payment control predictable and auditable.
-
----
-
-## 2️⃣ Medium-Risk Protection — ~30 sec
-
-Demonstrate:
+Converts the ML risk probability into a bounded operational action:
 
 ```text
-🟠 MEDIUM
-     ↓
-🔐 2FA REQUIRED
-     ↓
-OTP GENERATED
-     ↓
-VERIFY OTP
-     ↓
-✅ PAYMENT APPROVED
+LOW       → ALLOW
+MEDIUM    → 2FA
+HIGH      → HOLD + SECURITY TICKET
 ```
 
-This demonstrates **adaptive friction** rather than automatically rejecting every suspicious transaction.
+### 🚨 PaymentOps
 
----
+Turns security and payment signals into an operational incident briefing, recommended action, and merchant-friendly explanation.
 
-## 3️⃣ High-Risk Response — ~30 sec
+### 💰 PayRecover + Smart Retry
 
-Demonstrate:
-
-```text
-🔴 HIGH
-     ↓
-⛔ HOLD
-     ↓
-🎫 SECURITY TICKET
-     ↓
-🤖 PaymentOps AI
-```
-
-Show the incident summary and recommended operational response.
-
----
-
-## 4️⃣ Failed Payment Recovery — ~45 sec
-
-Click:
-
-```text
-❌ Simulate Failed Payment
-```
-
-Then show:
+When a legitimate payment fails:
 
 ```text
 PAYMENT FAILED
       ↓
-💰 PayRecover AI
+PAYRECOVER AI
       ↓
-Recovery Probability
-      ↓
-⏰ Smart Retry AI
-      ↓
-Best Retry Window
-      ↓
-💳 Payment Method Recommendation
-```
-
-> This is a simulated recovery event for evaluation. It does not move real money.
-
----
-
-## 5️⃣ AI Explanation — ~30 sec
-
-Ask PaymentOps/Gemini:
-
-```text
-Why was this payment held and what should the merchant do?
-```
-
-Gemini provides the natural-language explanation while the **trained ML model + deterministic policy layer remain responsible for the core fraud decision**.
-
----
-
-# 🎯 What Judges Can Evaluate
-
-| Area               | Demonstrated Capability                   |
-| ------------------ | ----------------------------------------- |
-| 🛡️ Fraud          | ML-based fraud-risk prediction            |
-| 🧠 Decisioning     | Deterministic ALLOW / 2FA / HOLD policy   |
-| 🔐 Verification    | Risk-based OTP 2FA                        |
-| 🎫 Security        | High-risk security ticketing              |
-| 💰 Recovery        | Failed-payment recovery prediction        |
-| ⏰ Retry            | Retry-window optimization                 |
-| 💳 Payment Methods | Alternative payment-method recommendation |
-| 🤖 Operations      | PaymentOps + Gemini explanations          |
-| 🔌 Integration     | Razorpay sandbox/event simulation         |
-| 📊 Evaluation      | Held-out PR-AUC / ROC-AUC                 |
-| ⚠️ Risk Trade-offs | Explicit false-positive-cost methodology  |
-
----
-
-# 🏆 Razorpay AI Buildathon Alignment
-
-PayShield AI is primarily aligned with:
-
-### Track 02 — AI Risk Manager
-
-and secondarily with:
-
-### Track 03 — AI Revenue Recovery
-
----
-
-## 🛡️ Track 02 — AI Risk Manager
-
-PayShield AI provides:
-
-* A trained ML fraud-risk detector.
-* Held-out test-set evaluation.
-* Fraud probability prediction.
-* A deterministic risk-policy layer.
-* LOW / MEDIUM / HIGH risk classification.
-* Risk-based 2FA for medium-risk transactions.
-* HOLD + security ticketing for high-risk transactions.
-* Explainable operational decisions.
-* PR-AUC and ROC-AUC evaluation.
-* Explicit consideration of false-positive costs.
-* A defense-only security use case.
-
-### Core principle
-
-The generative AI layer does **not** independently decide whether a payment is fraudulent.
-
-```text
-ML MODEL
-   ↓
-FRAUD PROBABILITY
-   ↓
-DETERMINISTIC POLICY
-   ↓
-ALLOW / 2FA / HOLD
-```
-
-This keeps the security control bounded and auditable.
-
----
-
-# 💰 Track 03 — AI Revenue Recovery
-
-PayShield AI also demonstrates a revenue-recovery workflow for failed payments.
-
-It includes:
-
-* Failed-payment classification.
-* Recovery probability prediction.
-* Smart retry optimization.
-* Multiple retry-window evaluation.
-* Payment-method recommendation.
-* Simulated payment-failure events.
-* Recovery recommendations.
-* Operational explanations.
-
-The prototype does not claim real-money recovery during the demo.
-
----
-
-# ⚠️ Safety & Evaluation Boundary
-
-PayShield AI is a **buildathon prototype**, not a production payment authorization system.
-
-The project does **not** claim:
-
-* Production fraud guarantees.
-* Unrestricted autonomous payment approval.
-* Unrestricted autonomous movement of funds.
-* Real-money recovery through the demo.
-* Production-grade Razorpay webhook ingestion.
-* Production-grade audit infrastructure.
-
-These capabilities are identified separately as future production scope.
-
----
-
-# 🎯 Problem
-
-Digital payment systems face two major challenges:
-
-### 1. Fraud
-
-Fraudulent transactions can result in:
-
-* Financial losses.
-* Chargebacks.
-* Security incidents.
-* Merchant risk.
-* Customer trust issues.
-
-### 2. Payment Failure
-
-Legitimate payment failures can result in:
-
-* Lost revenue.
-* Customer drop-off.
-* Repeated failed attempts.
-* Poor payment experiences.
-
-Traditional systems can also introduce unnecessary friction by treating transactions too similarly.
-
-PayShield AI addresses both problems through **adaptive payment-risk and recovery workflows**.
-
----
-
-# 💡 Solution
-
-PayShield evaluates payment behavior using machine learning and then applies a deterministic policy layer.
-
-```text
-PAYMENT RECEIVED
-       ↓
-🛡️ FRAUDSHIELD AI
-       ↓
-FRAUD PROBABILITY
-       ↓
-🧠 DECISION ENGINE
-       ↓
- ┌─────────┬───────────┬──────────┐
- ↓         ↓           ↓
-🟢 LOW   🟠 MEDIUM   🔴 HIGH
- ↓         ↓           ↓
-ALLOW     2FA        HOLD
-                     +
-                  SECURITY
-                   TICKET
-```
-
-For failed payments:
-
-```text
-❌ PAYMENT FAILED
-       ↓
-💰 PAYRECOVER AI
-       ↓
 RECOVERY PROBABILITY
-       ↓
-⏰ SMART RETRY AI
-       ↓
-RETRY TIME + PAYMENT METHOD
-       ↓
-⭐ RECOVERY RECOMMENDATION
+      ↓
+SMART RETRY AI
+      ↓
+BEST RETRY WINDOW
+      ↓
+PAYMENT METHOD
+      ↓
+RECOVERY RECOMMENDATION
 ```
+
+---
+
+# 🎯 The Complete Payment Lifecycle
+
+```text
+                    PAYMENT
+                       │
+                       ▼
+              🛡️ FRAUDSHIELD AI
+                       │
+                       ▼
+                FRAUD PROBABILITY
+                       │
+                       ▼
+                🧠 DECISION ENGINE
+                       │
+            ┌──────────┼──────────┐
+            ▼          ▼          ▼
+         🟢 LOW     🟠 MEDIUM    🔴 HIGH
+            │          │          │
+         ALLOW        2FA        HOLD
+                       │          │
+                       ▼          ▼
+                  VERIFY OTP   SECURITY TICKET
+                       │          │
+                       └────┬─────┘
+                            ▼
+                      PAYMENT OPS
+                            │
+                            │
+                IF PAYMENT FAILS
+                            ▼
+                    💰 PAYRECOVER
+                            │
+                            ▼
+                   RECOVERY PROBABILITY
+                            │
+                            ▼
+                    ⏰ SMART RETRY
+                            │
+                 ┌──────────┴──────────┐
+                 ▼                     ▼
+             RETRY TIME          PAYMENT METHOD
+                 │                     │
+                 └──────────┬──────────┘
+                            ▼
+                  RECOVERY RECOMMENDATION
+```
+
+This is the central concept behind PayShield AI.
 
 ---
 
 # 🛡️ FraudShield AI
 
-FraudShield is the core machine-learning fraud detection layer.
+FraudShield is the machine-learning risk detection layer.
 
-It provides:
+It evaluates transaction and behavioral signals including:
 
-* AI-based fraud probability prediction.
-* Transaction risk scoring.
-* LOW / MEDIUM / HIGH classification.
-* Transaction behavior analysis.
-* Customer risk analysis.
-* Merchant risk analysis.
-* Payment-channel analysis.
-* Device analysis.
-* Velocity analysis.
-* Failure-pattern analysis.
+* Transaction amount
+* Customer monthly spending
+* Merchant risk score
+* IP risk score
+* Transaction velocity
+* Failed transaction history
+* Payment channel
+* Device type
+* Geographic distance
+* Customer transaction history
+* Customer failure rate
+* Merchant transaction history
+* Merchant fraud rate
+* Transaction timing
+* Amount deviation from normal customer behavior
 
-## Fraud Detection Signals
+The model produces a fraud-risk probability.
 
-The fraud engine uses signals including:
-
-* Transaction amount.
-* Customer monthly spending.
-* Merchant risk score.
-* IP risk score.
-* Transaction velocity.
-* Failed transactions.
-* Payment channel.
-* Device type.
-* Geographic distance.
-* Customer transaction history.
-* Customer failure rate.
-* Merchant transaction history.
-* Merchant fraud rate.
-* Transaction timing.
-* Amount deviation from user behavior.
+However, the ML model does **not** independently control the final payment action.
 
 ---
 
-# 🧠 PayShield Decision Engine
+# 🧠 Deterministic Decision Engine
 
-The Decision Engine converts the FraudShield ML probability into an operational payment control.
+The Decision Engine sits between prediction and payment action.
 
 ```text
 FraudShield ML
       ↓
-Risk Probability
+Fraud Probability
       ↓
-Policy Layer
+Deterministic Policy
       ↓
-┌────────────┬──────────────┬───────────────┐
-│ LOW        │ MEDIUM       │ HIGH          │
-│ 0–39       │ 40–69        │ 70–100        │
-│            │              │               │
-│ ALLOW      │ 2FA          │ HOLD          │
-│            │              │ +             │
-│            │              │ SECURITY      │
-│            │              │ TICKET        │
-└────────────┴──────────────┴───────────────┘
+┌────────────┬─────────────┬──────────────┐
+│ LOW        │ MEDIUM      │ HIGH         │
+│ 0–39       │ 40–69       │ 70–100       │
+│            │             │              │
+│ ALLOW      │ 2FA         │ HOLD         │
+│            │             │ +            │
+│            │             │ SECURITY     │
+│            │             │ TICKET       │
+└────────────┴─────────────┴──────────────┘
 ```
+
+This separation makes the security workflow:
+
+**Predictable + Bounded + Auditable**
 
 The ML model predicts risk.
 
-The deterministic policy layer controls the final action.
-
-This makes the payment decision:
-
-**Predictable + Auditable + Explainable**
+The deterministic policy controls the response.
 
 ---
 
 # 🔐 Risk-Based 2FA
 
-Medium-risk transactions trigger an additional verification step.
+Medium-risk transactions trigger step-up verification instead of being immediately blocked.
 
 ```text
 MEDIUM RISK
@@ -394,77 +204,163 @@ MEDIUM RISK
      ↓
 OTP GENERATED
      ↓
-VERIFY OTP
+OTP VERIFICATION
      ↓
 PAYMENT APPROVED
 ```
 
 The prototype includes:
 
-* OTP generation.
-* OTP expiry.
-* OTP verification.
-* Failed-attempt tracking.
-* Maximum-attempt protection.
-* Payment approval after successful verification.
+* OTP generation
+* OTP expiry
+* OTP verification
+* Failed-attempt tracking
+* Maximum-attempt protection
+* Approval after successful verification
 
-The 2FA mechanism is intended for demonstration and should not be treated as production authentication infrastructure.
+The 2FA mechanism is intended for demonstration and is not presented as production authentication infrastructure.
 
 ---
 
-# 🎫 Security Ticketing
+# 🔴 High-Risk Intervention
 
-High-risk transactions can be placed on HOLD and generate a security ticket.
+When a transaction crosses the configured high-risk threshold:
 
-Tickets can contain:
+```text
+HIGH RISK
+    ↓
+HOLD
+    ↓
+SECURITY TICKET
+    ↓
+PAYMENTOPS
+    ↓
+INCIDENT ANALYSIS
+```
 
-* Ticket ID.
-* Transaction ID.
-* Transaction amount.
-* Fraud risk score.
-* Risk level.
-* Payment action.
-* Creation time.
-* Ticket status.
-* Security recommendation.
+The security ticket can contain:
 
-This gives security teams an operational response instead of only producing a fraud score.
+* Ticket ID
+* Transaction ID
+* Transaction amount
+* Fraud probability
+* Risk level
+* Payment action
+* Creation time
+* Ticket status
+* Security recommendation
+
+This turns a model prediction into an operational security response.
+
+---
+
+# 🚨 PaymentOps AI
+
+PaymentOps is the operational intelligence layer connecting the ML decision to merchant action.
+
+It answers:
+
+> **What happened? Why did it happen? What should the merchant do next?**
+
+PaymentOps can organize information into:
+
+### Incident Summary
+
+What happened to the transaction.
+
+### Problem Detected
+
+The signals associated with the intervention.
+
+### Business Impact
+
+The potential operational impact.
+
+### Recommended Action
+
+What the merchant or security team should do.
+
+### AI Assessment
+
+A natural-language explanation of the incident.
+
+---
+
+# 🤖 Gemini's Role
+
+PayShield uses Gemini for **explanation and operational intelligence**.
+
+Gemini is not the sole authority for approving or blocking payments.
+
+The critical security path remains:
+
+```text
+ML MODEL
+   ↓
+RISK PROBABILITY
+   ↓
+DETERMINISTIC POLICY
+   ↓
+ALLOW / 2FA / HOLD
+```
+
+This separation is intentional.
+
+---
+
+# 🌙 What Happens If Something Breaks at 2 AM?
+
+PayShield is designed around failure handling rather than only the happy path.
+
+Potential failures include:
+
+* LLM unavailable
+* Unexpected webhook fields
+* Invalid model input
+* OTP expiry
+* Too many OTP attempts
+* Payment failure
+* Runtime/interface mismatch
+
+The LLM is separated from the core fraud decision, so an LLM failure does not have to become a payment-security failure.
+
+During development, a runtime issue was encountered involving a mismatch between the function interface and the arguments being passed to it. The issue was traced through the error, the interface was corrected, the model input was verified, and the application was redeployed.
+
+This reinforced an important design principle:
+
+> **A payment system has to handle failure, not just success.**
 
 ---
 
 # 💰 PayRecover AI
 
-Fraud prevention is only one side of payment operations.
+Fraud prevention protects the payment system, but legitimate payment failures can still create revenue loss.
 
-When a legitimate payment fails, PayRecover AI evaluates the payment context and predicts the probability of successful recovery.
+PayRecover AI addresses the second side of the problem.
 
-It considers signals such as:
+When a payment fails, it evaluates the payment context and estimates the probability that the payment can still be recovered.
 
-* Failure reason.
-* Payment method.
-* Retry count.
-* Time since failure.
-* Customer success rate.
-* Payment-method success rate.
-* Previous failures.
-* Device type.
-* Transaction timing.
-
-The application includes:
+The prototype can simulate:
 
 ```text
-❌ Simulate Failed Payment
+PAYMENT FAILED
+      ↓
+FAILURE ANALYSIS
+      ↓
+RECOVERY PROBABILITY
+      ↓
+RECOVERY RECOMMENDATION
 ```
 
-so judges can observe the recovery workflow without processing real money.
+The demo uses simulated/sandbox events and does not move real money.
 
 ---
 
 # ⏰ Smart Retry AI
 
-Smart Retry AI determines when a failed payment should be retried.
+Retrying immediately is not always the best strategy.
 
-The system evaluates multiple retry windows:
+Smart Retry evaluates multiple retry windows:
 
 ```text
 5 min
@@ -477,11 +373,11 @@ The system evaluates multiple retry windows:
 1440 min
 ```
 
-The trained model predicts the expected success probability for each interval.
+The trained model predicts the expected success probability for each option.
 
-The highest-probability option becomes the recommended retry window.
+The strongest predicted option becomes the recommended retry window.
 
-Example interface:
+The interface can show:
 
 ```text
 Retry Time       Predicted Success
@@ -496,120 +392,56 @@ Retry Time       Predicted Success
 1440 min              XX%
 ```
 
-The displayed values are generated by the trained model for the transaction being evaluated.
+The values are generated by the trained model for the transaction being evaluated.
 
 ---
 
 # 💳 Payment Method Recommendation
 
-PayShield can evaluate alternative payment methods including:
+PayShield can work with payment-method categories such as:
 
-* UPI.
-* CARD.
-* WALLET.
-* NETBANKING.
-
-The recovery workflow can recommend an alternative payment method based on the available recovery model.
+* UPI
+* Card
+* Wallet
+* Netbanking
 
 Instead of simply recommending:
 
 > **Try again later.**
 
-PayShield can provide:
+the recovery workflow can recommend:
 
-> **Try again later using a better payment method.**
-
----
-
-# 🤖 PaymentOps AI + Gemini
-
-PaymentOps AI acts as the operational intelligence layer of PayShield.
-
-It converts technical payment signals into merchant-friendly explanations.
-
-For security incidents, PaymentOps can provide:
-
-### 📋 Incident Summary
-
-Transaction information, amount, risk level, and decision.
-
-### 🔍 Problem Detected
-
-The signals contributing to the intervention.
-
-### 📊 Business Impact
-
-The potential operational impact of the payment decision.
-
-### 🎯 Recommended Action
-
-The recommended next step for the merchant or security team.
-
-### 🧠 AI Assessment
-
-A natural-language interpretation of the incident.
-
-Gemini is used for **explanation and operational intelligence**.
-
-The FraudShield ML model and deterministic Decision Engine remain responsible for the core fraud decision.
-
----
-
-# 💬 Gemini AI Assistant
-
-PayShield includes a Gemini-powered assistant for questions about:
-
-* Current transaction risk.
-* Fraud decisions.
-* 2FA.
-* Payment recovery.
-* Smart Retry.
-* PaymentOps.
-* Security recommendations.
-
-Example:
-
-```text
-User:
-Why was this payment held?
-
-AI:
-The transaction received a high fraud-risk score.
-The configured security policy therefore placed
-the payment on hold for security review.
-```
-
-Gemini is an **assistance and explanation layer**, not the sole authority for approving or blocking payments.
+> **Try again later using a more suitable payment method.**
 
 ---
 
 # 🔌 Razorpay Sandbox / Webhook Simulation
 
-PayShield includes a Razorpay sandbox/event simulation layer.
+PayShield includes a sandbox/event simulation layer demonstrating how payment events can enter the system.
 
 Example:
 
 ```text
-payment.failed
-       ↓
 Razorpay Event
-       ↓
+     ↓
+payment.failed
+     ↓
 PayShield
-       ↓
+     ↓
 PayRecover AI
-       ↓
+     ↓
 Smart Retry AI
+     ↓
+Recovery Recommendation
 ```
 
-The prototype demonstrates how payment events can enter the PayShield workflow.
-
-> **Important:** The integration shown in the buildathon demo is a sandbox/simulation workflow. It does not process real customer payments.
+The buildathon demo does not process real customer payments.
 
 ---
 
 # 📊 Model Performance
 
-PayShield evaluates its models using held-out test data rather than relying on accuracy alone.
+The models were evaluated using held-out test data.
 
 | Model       | Purpose                            |    PR-AUC |   ROC-AUC |
 | ----------- | ---------------------------------- | --------: | --------: |
@@ -617,148 +449,89 @@ PayShield evaluates its models using held-out test data rather than relying on a
 | PayRecover  | Failed-payment recovery prediction | **0.461** | **0.704** |
 | Smart Retry | Retry-success prediction           | **0.574** | **0.707** |
 
-## Why PR-AUC?
+### Why PR-AUC?
 
-Fraud datasets are typically imbalanced, so PR-AUC provides a more informative view of positive-class performance than accuracy alone.
+Fraud datasets are imbalanced, so PR-AUC is useful for evaluating positive-class performance rather than relying on accuracy alone.
 
 ---
 
 # ⚠️ False-Positive Cost
 
-For the AI Risk Manager track, false positives matter because legitimate transactions can be unnecessarily challenged or held.
+For fraud prevention, false positives matter.
+
+A legitimate customer can experience:
+
+* An unnecessary 2FA challenge
+* A delayed payment
+* A payment being placed on HOLD
 
 PayShield therefore separates:
 
-* **False-positive rate / precision-recall behavior** for model evaluation.
-* **Challenge cost** for legitimate transactions sent to 2FA.
-* **Potential blocked legitimate transaction value** for legitimate transactions sent to HOLD.
+* Model precision/recall behavior
+* Challenge cost for legitimate transactions
+* Potential value affected by legitimate transactions sent to HOLD
 
 The project intentionally does **not invent a rupee-denominated false-positive cost**.
 
-The final operating-point analysis should use the actual held-out transaction amounts and the selected decision threshold.
+The selected operating point should be evaluated using actual held-out transaction amounts and the configured decision threshold.
 
 ---
 
-# 🧠 Machine Learning Models
+# 🏆 Razorpay Buildathon Alignment
 
-PayShield uses three trained models:
+## Track 02 — AI Risk Manager
 
-| Model                | Purpose                            |
-| -------------------- | ---------------------------------- |
-| `fraud_model.pkl`    | Fraud-risk prediction              |
-| `recovery_model.pkl` | Failed-payment recovery prediction |
-| `retry_model.pkl`    | Retry-success prediction           |
+PayShield demonstrates:
 
-Feature definitions and model configuration are stored separately in the `config/` directory.
+* ML-based fraud-risk prediction
+* Held-out evaluation
+* Fraud probability scoring
+* Deterministic decisioning
+* LOW / MEDIUM / HIGH risk classification
+* Risk-based 2FA
+* HOLD + security ticketing
+* Explainable operational decisions
+* PR-AUC and ROC-AUC evaluation
+* False-positive-cost methodology
+* Defense-only security use case
 
----
+## Track 03 — AI Revenue Recovery
 
-# 🔄 Complete Payment Operations Flow
+PayShield demonstrates:
 
-```text
-                 PAYMENT RECEIVED
-                       │
-                       ▼
-               🛡️ FRAUDSHIELD AI
-                       │
-                       ▼
-                 RISK PROBABILITY
-                       │
-                       ▼
-              🧠 DECISION ENGINE
-                       │
-          ┌────────────┼────────────┐
-          ▼            ▼            ▼
-      🟢 LOW       🟠 MEDIUM      🔴 HIGH
-          │            │            │
-       ALLOW          2FA          HOLD
-                       │             │
-                       ▼             ▼
-                    VERIFY      SECURITY TICKET
-                       │             │
-                       └──────┬──────┘
-                              │
-                              ▼
-                    PAYMENT OPERATIONS
+* Failed-payment classification
+* Recovery probability prediction
+* Smart retry optimization
+* Multiple retry-window evaluation
+* Payment-method recommendation
+* Simulated payment-failure events
+* Recovery recommendations
+* Operational explanations
 
+### Prototype boundary
 
-             FAILED LEGITIMATE PAYMENT
-                       │
-                       ▼
-                 💰 PAYRECOVER AI
-                       │
-                       ▼
-                RECOVERY PROBABILITY
-                       │
-                       ▼
-                 ⏰ SMART RETRY AI
-                       │
-              ┌────────┴────────┐
-              ▼                 ▼
-         RETRY TIME       PAYMENT METHOD
-              │                 │
-              └────────┬────────┘
-                       ▼
-              ⭐ BEST RECOVERY ACTION
-```
+The current project does not claim:
 
----
+* Real-money recovery
+* Production payment authorization
+* Unrestricted autonomous movement of funds
+* Production-grade webhook infrastructure
+* Production-grade audit infrastructure
 
-# 📈 Merchant Security Dashboard
-
-The dashboard provides visibility into:
-
-* Fraud-risk decisions.
-* Fraud statistics.
-* Revenue-recovery workflow.
-* Smart Retry recommendations.
-* Security tickets.
-* Transaction history.
-* Security Operations Center.
-* Current payment decision.
-* Explainable AI.
-* PaymentOps analysis.
-* AI assistant interactions.
-
----
-
-# 📖 PayShield Manual
-
-The application includes an interactive manual explaining:
-
-* FraudShield.
-* Risk levels.
-* Decision Engine.
-* 2FA.
-* Security tickets.
-* PayRecover.
-* Smart Retry.
-* Payment-method optimization.
-* PaymentOps.
-* Razorpay sandbox/event simulation.
-
-This allows judges and users to understand the system directly from the application.
-
----
-
-# 🔊 Security Feedback
-
-PayShield includes interactive security feedback for important payment decisions.
-
-The application can provide audio/voice feedback alongside visual security states to make the dashboard more interactive during demonstrations.
+These are future production requirements.
 
 ---
 
 # 🛠️ Technology Stack
 
-## Application
+### Application
 
 * Python
 * Streamlit
 * Pandas
 * NumPy
 
-## Machine Learning
+### Machine Learning
 
 * Scikit-learn
 * XGBoost
@@ -766,20 +539,20 @@ The application can provide audio/voice feedback alongside visual security state
 * Feature engineering
 * Predictive modeling
 
-## Generative AI
+### Generative AI
 
 * Google Gemini API
 * Gemini-powered PaymentOps
 * Gemini AI Assistant
 
-## Payment Integration Concept
+### Payment Integration Concept
 
-* Razorpay Sandbox
-* Razorpay webhook/event simulation
+* Razorpay sandbox/event simulation
+* Webhook-style payment events
 
-## Security
+### Security
 
-* Risk-based payment controls
+* Risk-based controls
 * OTP-based 2FA
 * Security ticketing
 * Deterministic decision policy
@@ -792,8 +565,9 @@ The application can provide audio/voice feedback alongside visual security state
 PayShield-AI/
 │
 ├── app.py
-├── requirements.txt
 ├── README.md
+├── requirements.txt
+├── .gitignore
 │
 ├── models/
 │   ├── fraud_model.pkl
@@ -806,38 +580,71 @@ PayShield-AI/
 │   ├── retry_features.json
 │   └── model_metrics.json
 │
-└── data/
-    ├── fraud_test.csv
-    └── recovery_full.csv
+├── data/
+│   ├── fraud_test.csv
+│   └── recovery_full.csv
+│
+└── .devcontainer/
+    └── ...
 ```
+
+### Repository organization
+
+```text
+app.py
+    ↓
+Main Streamlit application
+
+models/
+    ↓
+Trained ML models
+
+config/
+    ↓
+Feature definitions + evaluation metrics
+
+data/
+    ↓
+Datasets used by the prototype
+
+README.md
+    ↓
+Project documentation
+
+requirements.txt
+    ↓
+Python dependencies
+```
+
+Large training datasets and temporary/generated files should not be committed unless they are intentionally required by the deployed application.
 
 ---
 
 # 📦 Requirements
+
+Use the same scikit-learn version that was used to create the trained model.
 
 ```txt
 streamlit
 joblib
 numpy<2.0.0
 pandas
-scikit-learn==1.5.2
+scikit-learn==1.6.1
 xgboost
 streamlit-authenticator==0.2.3
 bcrypt
 google-genai
 ```
 
-> Some dependencies may remain in the deployment environment even if a particular optional component is not used in the current public demo.
+> `streamlit-authenticator` and `bcrypt` may remain in the environment from earlier development, although the current public demo does not require a login.
 
 ---
 
 # 🔐 Configuration
 
-Sensitive credentials must **never** be committed to GitHub.
+Sensitive credentials must never be committed to GitHub.
 
-The application uses deployment secrets for services such as Gemini.
-
-Example:
+For example:
 
 ```toml
 GEMINI_API_KEY = "your_gemini_api_key"
@@ -845,36 +652,22 @@ GEMINI_API_KEY = "your_gemini_api_key"
 
 Never commit:
 
-* API keys.
-* Passwords.
-* Authentication secrets.
-* Cookie keys.
-* Private credentials.
+* API keys
+* Passwords
+* Authentication secrets
+* Cookie keys
+* Private credentials
 
 ---
 
 # ▶️ Run Locally
 
-Clone the repository:
-
 ```bash
 git clone https://github.com/miraculous234/PayShield-AI.git
 cd PayShield-AI
-```
-
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
-```
-
-Run:
-
-```bash
 streamlit run app.py
 ```
-
-The application will open in your browser.
 
 ---
 
@@ -884,182 +677,152 @@ PayShield AI is deployed using Streamlit Community Cloud.
 
 ```text
 GitHub Repository
-        ↓
+       ↓
 Streamlit Community Cloud
-        ↓
+       ↓
 app.py
-        ↓
+       ↓
 PayShield AI
-        ↓
+       ↓
 Public Demo
 ```
 
 ### Live Application
 
-👉 [Launch PayShield AI](https://payshield-ai-iblc2arnq6ovzfecwi8tyq.streamlit.app/)
+👉 https://payshield-ai-iblc2arnq6ovzfecwi8tyq.streamlit.app/
 
 ---
 
-# 🎬 Recommended Demo Flow
+# 🎬 Recommended Buildathon Demo
 
-For the buildathon presentation:
-
-### 1. AI Fraud Detection
+For the 5-minute presentation:
 
 ```text
-Transaction
-   ↓
-FraudShield ML
-   ↓
-Fraud Probability
-   ↓
-Decision Engine
-   ↓
-ALLOW / 2FA / HOLD
+1. Dashboard
+      ↓
+2. FraudShield AI
+      ↓
+3. 55% MEDIUM transaction
+      ↓
+4. 2FA verification
+      ↓
+5. HIGH-risk HOLD + security ticket
+      ↓
+6. PaymentOps incident briefing
+      ↓
+7. “What happens at 2 AM?”
+      ↓
+8. Simulate Failed Payment
+      ↓
+9. PayRecover AI
+      ↓
+10. Smart Retry AI
+      ↓
+11. Model metrics
+      ↓
+12. Closing
 ```
-
-### 2. Medium-Risk Transaction
-
-```text
-MEDIUM
-   ↓
-2FA
-   ↓
-OTP Verification
-   ↓
-PAYMENT APPROVED
-```
-
-### 3. High-Risk Transaction
-
-```text
-HIGH
-   ↓
-HOLD
-   ↓
-SECURITY TICKET
-   ↓
-PaymentOps AI
-```
-
-### 4. Failed Payment Recovery
-
-```text
-Payment Failed
-   ↓
-PayRecover AI
-   ↓
-Recovery Probability
-   ↓
-Smart Retry
-   ↓
-Retry Window
-   ↓
-Payment Method
-   ↓
-Recovery Recommendation
-```
-
-### 5. Gemini PaymentOps
-
-Ask:
-
-```text
-Why was this payment held and what should the merchant do?
-```
-
-Gemini converts the payment signals into a clear operational explanation.
 
 ---
 
-# 🏆 Why PayShield AI?
+# 💡 Why PayShield AI?
 
-PayShield AI is not simply a fraud classifier and not a chatbot placed on top of payments.
+PayShield AI is not simply a fraud classifier.
 
-It connects:
+It is not simply a recovery model.
+
+And it is not a chatbot placed on top of payments.
+
+It connects specialized intelligence across the payment lifecycle:
 
 ```text
-PREDICTION
-    ↓
-POLICY
-    ↓
-VERIFICATION
-    ↓
-INTERVENTION
-    ↓
-RECOVERY
-    ↓
-EXPLANATION
+              PAYSHIELD AI
+                   │
+       ┌───────────┼───────────┐
+       ▼           ▼           ▼
+   FRAUDSHIELD  PAYMENTOPS  PAYRECOVER
+       │           │           │
+       ▼           ▼           ▼
+     RISK       RESPOND      RECOVER
+       │                       │
+       ▼                       ▼
+ DECISION ENGINE          SMART RETRY
+       │                       │
+       └───────────┬───────────┘
+                   ▼
+          PAYMENT INTELLIGENCE
 ```
 
-## What makes it different?
+### The four questions PayShield answers
 
-| Capability                  | PayShield AI                               |
-| --------------------------- | ------------------------------------------ |
-| Fraud prediction            | Trained ML model                           |
-| Final payment control       | Deterministic Decision Engine              |
-| Customer friction           | Risk-based 2FA                             |
-| High-risk response          | HOLD + security ticket                     |
-| Failed-payment recovery     | Recovery probability model                 |
-| Retry optimization          | Smart Retry model                          |
-| Payment-method intervention | Recovery recommendation                    |
-| Operational intelligence    | PaymentOps + Gemini                        |
-| Explainability              | Risk signals + AI explanation              |
-| Evaluation                  | Held-out metrics + FP-cost methodology     |
-| Safety boundary             | Sandbox/simulation, no real-money movement |
+**FraudShield:**
 
-The generative AI layer does **not** have unrestricted authority to approve or block payments.
+> Should I trust this transaction?
 
-The core fraud decision remains with the trained ML model and deterministic policy layer.
+**Decision Engine:**
+
+> What should I do about the risk?
+
+**PaymentOps:**
+
+> What happened and what should the operations team do?
+
+**PayRecover + Smart Retry:**
+
+> Can this failed revenue be recovered, and what is the best way to retry?
+
+That is why PayShield AI is designed as **one payment intelligence system rather than four disconnected features.**
 
 ---
 
 # 🎯 Project Goal
 
-PayShield AI aims to create an intelligent payment protection and recovery layer that can:
+PayShield AI aims to balance:
+
+**Security + Customer Experience + Revenue Recovery + Merchant Operations**
+
+The complete objective is:
 
 ```text
 Detect Fraud
      ↓
 Assess Risk
      ↓
-Verify Users
+Make a Bounded Decision
      ↓
-Allow / Hold Payments
+Verify or Hold
      ↓
-Create Security Tickets
+Create Operational Response
      ↓
-Explain Incidents
+Understand Payment Failure
      ↓
-Recover Failed Revenue
+Estimate Recovery
      ↓
-Optimize Retry Timing
+Optimize Retry
      ↓
-Optimize Payment Method
+Recommend Recovery Action
 ```
-
-The goal is to balance:
-
-**Security + Customer Experience + Revenue Recovery + Merchant Operations**
 
 ---
 
 # 🔮 Future Scope
 
-The following are intentionally identified as future production improvements rather than claimed as completed functionality:
+Future production improvements include:
 
-* Real-time production Razorpay webhook ingestion.
-* Production payment-gateway integration.
-* Measured batch-level recovered revenue on real/sandbox payment outcomes.
-* Explicit compliant escalation and stopping rules for automated recovery.
-* Production-grade audit logging for every money-related action.
-* Advanced fraud graph and behavioral anomaly models.
-* Real-time model monitoring and threshold calibration.
-* Automated merchant alerts.
-* Continuous model retraining with drift monitoring.
-* Multi-agent PaymentOps automation with bounded permissions.
-* Adaptive risk thresholds.
-* More sophisticated recovery strategies.
+* Real-time Razorpay webhook ingestion
+* Production payment-gateway integration
+* Batch-level measured recovered revenue
+* Compliant automated recovery stopping rules
+* Production-grade audit logging
+* Advanced fraud graph/anomaly models
+* Real-time model monitoring
+* Threshold calibration
+* Automated merchant alerts
+* Model drift monitoring
+* Continuous retraining
+* Bounded multi-agent PaymentOps automation
+* Adaptive risk thresholds
+* More advanced recovery strategies
 
 ---
 
@@ -1067,4 +830,4 @@ The following are intentionally identified as future production improvements rat
 
 ### **Prevent Fraud. Reduce Friction. Recover Revenue.**
 
-Built as an AI-powered payment security and recovery prototype for the **Razorpay AI Buildathon 2026**.
+Built as an AI-powered payment security, operations, and revenue-recovery prototype for the **Razorpay AI Buildathon 2026**.
