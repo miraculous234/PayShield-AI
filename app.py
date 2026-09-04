@@ -672,7 +672,7 @@ def run_fraud_decision(
         "failed_txn_count_24h": failed_24h_value,
         "geo_distance_from_last_txn": geo_distance_value,
         "amount_deviation_from_user_mean": amount_deviation_value,
-        "post_auth_risk_score": post_auth_risk_value,
+        "post_auth_risk_score": 0.0
         "transaction_hour": hour,
         "day_of_week": day,
         "is_weekend": is_weekend,
