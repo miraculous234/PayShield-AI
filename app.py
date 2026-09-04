@@ -39,61 +39,36 @@ st.set_page_config(
 # ============================================================
 
 names = ["Merchant Admin", "Security Analyst"]
+usernames = [u.strip() for u in st.secrets.get("AUTH_USERNAMES", "merchant_admin,analyst").split(",") if u.strip()]
+passwords = [p.strip() for p in st.secrets.get("AUTH_PASSWORDS", "").split(",") if p.strip()]
 
-def get_secret_value(key, default=""):
-    try:
-        return st.secrets.get(key, default)
-    except Exception:
-        return default
-
-usernames = [u.strip() for u in str(get_secret_value("AUTH_USERNAMES", "merchant_admin,analyst")).split(",") if u.strip()]
-passwords = [p.strip() for p in str(get_secret_value("AUTH_PASSWORDS", "")).split(",") if p.strip()]
-auth_configured = bool(passwords) and stauth is not None
+auth_configured = bool(st.secrets.get("AUTH_PASSWORDS", "").strip()) and stauth is not None and len(usernames) >= 2 and len(passwords) >= 2
 
 if auth_configured:
-    if len(usernames) < 2 or len(passwords) < 2:
-        st.error("Auth configuration requires two usernames and two passwords.")
-        st.stop()
-
     @st.cache_resource
-    def get_hashed_passwords(passwords_tuple):
-        passwords_list = list(passwords_tuple)
+    def get_hashed_passwords(password_tuple):
         try:
-            return [stauth.Hasher.hash(p) for p in passwords_list]
+            return [stauth.Hasher.hash(p) for p in password_tuple]
         except AttributeError:
-            return stauth.Hasher(passwords_list).generate()
+            return stauth.Hasher(list(password_tuple)).generate()
 
     hashed_passwords = get_hashed_passwords(tuple(passwords))
-    credentials = {
-        "usernames": {
-            usernames[0]: {"name": names[0], "password": hashed_passwords[0]},
-            usernames[1]: {"name": names[1], "password": hashed_passwords[1]}
-        }
-    }
-
-    authenticator = stauth.Authenticate(
-        credentials,
-        "payshield_cookie",
-        get_secret_value("COOKIE_KEY", "change_me_locally"),
-        cookie_expiry_days=1
-    )
-
+    credentials = {"usernames": {usernames[0]: {"name": names[0], "password": hashed_passwords[0]}, usernames[1]: {"name": names[1], "password": hashed_passwords[1]}}}
+    authenticator = stauth.Authenticate(credentials, "payshield_cookie", st.secrets.get("COOKIE_KEY", "change_me_locally"), cookie_expiry_days=1)
     try:
         authenticator.login(location="main")
     except TypeError:
         authenticator.login("PayShield AI Enterprise Access", location="main")
-
     if st.session_state.get("authentication_status") == False:
         st.error("Username/password is incorrect")
         st.stop()
     elif st.session_state.get("authentication_status") is None:
         st.warning("Please enter your merchant credentials to access the PayShield AI Portal")
         st.stop()
-
     st.sidebar.write(f"Logged in as: **{st.session_state.get('name')}**")
     authenticator.logout("Logout", "sidebar")
 else:
-    st.sidebar.info("🔓 Demo mode — no login required (auth secrets not configured).")
+    st.sidebar.info("🔓 Demo mode — authentication is disabled because AUTH_PASSWORDS is not configured.")
 
 # ============================================================
 # PATHS
@@ -137,9 +112,7 @@ DEFAULTS = {
     "sound_enabled": True,
     "last_sound_id": None,
     "welcome_seen": False,
-    "welcome_faq_answer": None,
-    "agent_brief_id": None,
-    "agent_brief_text": None
+    "welcome_faq_answer": None
 }
 
 for key, value in DEFAULTS.items():
@@ -414,7 +387,7 @@ def generate_agentic_ticket(payload_data, risk_score):
         "• **Recommended Mitigation**: Hold funds, generate a Security Ticket, and require additional verification.\n"
     )
     try:
-        api_key = get_secret_value("GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY")
+        api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not api_key or genai is None:
             return fallback
 
@@ -464,7 +437,7 @@ def make_sound(freq=660, duration=0.12, volume=0.08):
 
 def gemini_answer(question, context):
     try:
-        api_key = get_secret_value("GEMINI_API_KEY", "") or os.getenv("GEMINI_API_KEY")
+        api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not api_key or genai is None:
             return "Gemini is not configured yet. Add GEMINI_API_KEY to Streamlit Secrets to enable the assistant."
         client = genai.Client(api_key=api_key)
@@ -562,6 +535,9 @@ demo_mode = st.sidebar.selectbox(
 st.sidebar.divider()
 
 amount = st.sidebar.number_input("Transaction Amount (₹)", min_value=100.0, max_value=1000000.0, value=5000.0, step=500.0)
+account_age_days = st.sidebar.number_input("Account Age (days)", min_value=0, max_value=10000, value=1000)
+credit_score_band = st.sidebar.slider("Credit Score Band", 1, 5, 3)
+kyc_level = st.sidebar.slider("KYC Level", 0, 3, 2)
 monthly_spend = st.sidebar.number_input("Customer Monthly Spend (₹)", min_value=500.0, value=10000.0)
 merchant_risk = st.sidebar.slider("Merchant Risk Score", 0.0, 1.0, 0.25)
 ip_risk = st.sidebar.slider("IP Risk Score", 0.0, 1.0, 0.30)
@@ -579,11 +555,6 @@ customer_failed_rate = st.sidebar.slider("Customer Failed Rate", 0.0, 1.0, 0.10)
 merchant_txn_before = st.sidebar.number_input("Merchant Transactions Before", min_value=0.0, value=100.0)
 merchant_avg_amount = st.sidebar.number_input("Merchant Average Amount", min_value=0.0, value=2000.0)
 merchant_fraud_rate = st.sidebar.slider("Merchant Fraud Rate", 0.0, 1.0, 0.02)
-
-st.sidebar.subheader("🧾 Customer Profile")
-account_age_days = st.sidebar.number_input("Account Age (days)", min_value=1, max_value=10000, value=1000)
-credit_score_band = st.sidebar.slider("Credit Score Band", 1, 5, 3)
-kyc_level = st.sidebar.slider("KYC Level", 0, 3, 2)
 
 st.sidebar.divider()
 
@@ -613,10 +584,6 @@ def run_fraud_decision(
     merchant_txn_before_value,
     merchant_avg_amount_value,
     merchant_fraud_rate_value,
-    post_auth_risk_value=None,
-    account_age_days_value=1000,
-    credit_score_band_value=3,
-    kyc_level_value=2,
     source="Payment Simulator",
     external_id=None,
     event_name=None,
@@ -672,7 +639,6 @@ def run_fraud_decision(
         "failed_txn_count_24h": failed_24h_value,
         "geo_distance_from_last_txn": geo_distance_value,
         "amount_deviation_from_user_mean": amount_deviation_value,
-        "post_auth_risk_score": post_auth_risk_value,
         "transaction_hour": hour,
         "day_of_week": day,
         "is_weekend": is_weekend,
@@ -811,7 +777,6 @@ with st.sidebar.expander("🔌 Inject Razorpay Sandbox Webhook", expanded=False)
                 merchant_txn_before_value=merchant_txn_before,
                 merchant_avg_amount_value=merchant_avg_amount,
                 merchant_fraud_rate_value=merchant_fraud_rate,
-                post_auth_risk_value=post_auth_risk,
                 source="Razorpay Sandbox Webhook",
                 external_id=razorpay_id,
                 event_name=event_name,
@@ -821,6 +786,8 @@ with st.sidebar.expander("🔌 Inject Razorpay Sandbox Webhook", expanded=False)
             sandbox_result["failure_reason"] = error_text or "Payment event received"
             sandbox_result["razorpay_status"] = entity.get("status", "unknown")
 
+            st.session_state.agent_brief_id = None
+            st.session_state.agent_brief_text = None
             st.session_state.last_result = sandbox_result
             st.session_state.generated_otp = None
             st.session_state.otp_expiry = None
@@ -913,15 +880,14 @@ if analyze:
             geo_distance_value=geo_distance,
             amount_deviation_value=amount_deviation,
             customer_avg_amount_value=customer_avg_amount,
+            account_age_days_value=account_age_days,
+            credit_score_band_value=credit_score_band,
+            kyc_level_value=kyc_level,
             customer_txn_before_value=customer_txn_before,
             customer_failed_rate_value=customer_failed_rate,
             merchant_txn_before_value=merchant_txn_before,
             merchant_avg_amount_value=merchant_avg_amount,
             merchant_fraud_rate_value=merchant_fraud_rate,
-            post_auth_risk_value=None,
-            account_age_days_value=account_age_days,
-            credit_score_band_value=credit_score_band,
-            kyc_level_value=kyc_level,
             source="Payment Simulator",
             demo_mode_value=demo_mode
         )
@@ -931,8 +897,6 @@ if analyze:
         st.session_state.otp_verified = False
         st.session_state.otp_attempts = 0
         st.session_state.ticket_details = None
-        st.session_state.agent_brief_id = None
-        st.session_state.agent_brief_text = None
         st.session_state.scheduled_retry = None
         st.session_state.method_changed = False
         st.session_state.pay_later_selected = False
@@ -940,6 +904,8 @@ if analyze:
         st.session_state.recovery_result = None
         st.session_state.retry_result = None
         st.session_state.sandbox_event = False
+        st.session_state.agent_brief_id = None
+        st.session_state.agent_brief_text = None
         st.session_state.last_result = result
 
     except Exception as exc:
@@ -1087,7 +1053,6 @@ if result:
         
         # PaymentOps Autonomous LLM Briefing
         st.markdown("### 🤖 PaymentOps Agent Incident Briefing")
-
         if st.session_state.get("agent_brief_id") != result.get("analysis_id"):
             st.session_state.agent_brief_text = generate_agentic_ticket({
                 "amount": amount,
@@ -1096,7 +1061,6 @@ if result:
                 "amt_dev": amount_deviation
             }, risk_score)
             st.session_state.agent_brief_id = result.get("analysis_id")
-
         st.info(st.session_state.get("agent_brief_text", "PaymentOps briefing unavailable."))
 
         if st.session_state.ticket_details is None:
